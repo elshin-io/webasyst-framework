@@ -44,6 +44,9 @@ class webasystSettingsTemplateSMSAction extends webasystSettingsTemplateAction
 
     protected function getNumbers()
     {
+        if (!waSMS::adapterExists(null, true)) {
+            return [];
+        }
         $sms_config = wa()->getConfig()->getConfigFile('sms', array());
         $sms_adapters = $this->getSMSAdapters();
         $sms_numbers = array();

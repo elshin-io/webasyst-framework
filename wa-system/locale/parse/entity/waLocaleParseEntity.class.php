@@ -6,7 +6,7 @@ abstract class waLocaleParseEntity implements waLocaleParseEntityInterface
 
     const WEBASYST_DEFAULT_PATTERN = '_w';
 
-    const WEBASYST_PLUGIN_PATTERN = '_wp';
+    const WEBASYST_PLUGIN_PATTERN = '\\b_wp';
 
     const WEBASYST_DOMAIN_PATTERN = '_wd';
 
@@ -497,8 +497,8 @@ abstract class waLocaleParseEntity implements waLocaleParseEntityInterface
         $word_pattern .= $quote;
 
         // Ignore quotes in text
-        // example: _w("Shop \"Hell\"")
-        // example: _w("   Shop ")
+        // example: _ w("Shop \"Hell\"")
+        // example: _ w("   Shop ")
         $word_pattern .= "([\\s]*(?:\\\\$quote|[^$quote\\r\\n])+?[\\s]*)";
 
         // Closed quotes

@@ -78,8 +78,13 @@ class waAPIController
             wa()->getFrontController()->execute(null, 'api', 'revoke');
         } elseif ($request_url == 'api.php/token-headless') {
             wa()->getFrontController()->execute(null, 'api', 'tokenHeadless');
+        } elseif ($request_url == 'api.php/license-cache') {
+            wa()->getFrontController()->execute(null, 'api', 'licenseCache');
         } elseif ($request_url == 'api.php/profile-update') {
             wa()->getFrontController()->execute(null, 'api', 'profileUpdate');
+        } elseif (strpos($request_url, 'api.php/cron/') === 0 && count(explode('/', $request_url)) === 4) {
+            $parts = explode('/', $request_url);
+            (new waCronController($parts[2], $parts[3]))->execute();
         } elseif ($request_url === 'api.php') {
             $this->execute(waRequest::get('app'), waRequest::get('method'));
         } else {
@@ -94,7 +99,6 @@ class waAPIController
             }
         }
     }
-
 
     protected function execute($app, $method_name)
     {
@@ -128,6 +132,10 @@ class waAPIController
             throw new waAPIException('access_denied', 403);
         }
 
+        if (!$this->hasAppLicense($app)) {
+            throw new waAPIException('payment_required', 'License not activated', 402);
+        }
+
         // init app
         waSystem::getInstance($app, null, true);
 
@@ -142,7 +150,7 @@ class waAPIController
          * @var waAPIMethod $method
          */
         $method = new $class_name();
-        $this->response($method->getResponse());
+        $this->response($method->getResponse(), $method->getStatusCode());
     }
 
     protected function hasAppAccess($app)
@@ -169,17 +177,20 @@ class waAPIController
                 $token = waRequest::server('HTTP_AUTHORIZATION', null, 'string');
             }
             if ($token) {
-                $token = preg_replace('~^(Bearer\s)~ui', '', $token);
+                $token = preg_replace('~^(\s*Bearer\s+)~ui', '', $token);
+                $token = trim($token);
             }
         }
         if (!$token) {
-            throw new waAPIException('invalid_request', 'Required parameter is missing: access_token', 400);
+            throw new waAPIException('token_required', 'Access token is missing', 400);
         }
 
         $tokens_model = new waApiTokensModel();
         $data = $tokens_model->getById($token);
         if (!$data || $data['token'] != $token) {
-            throw new waAPIException('invalid_token', 'Invalid access token', 401);
+            throw new waAPIException('invalid_token', 'Invalid access token', 401, [
+                'sha256' => hash('sha256', $token),
+            ]);
         }
         if ($data['expires'] && (strtotime($data['expires']) < time())) {
             throw new waAPIException('invalid_token', 'Access token has expired', 401);
@@ -203,4 +214,19 @@ class waAPIController
 
         return $data;
     }
+
+    protected function hasAppLicense($app)
+    {
+        if (!wa()->appExists('installer')) {
+            return true;
+        }
+        waSystem::getInstance('installer');
+        $ann_list = (new installerAnnouncementList)->withFilteredByApp($app)->getTopHeaderList();
+        $ann_list = array_filter($ann_list, function ($a) use ($app) {
+            return !empty($a['is_blocking']) && ifset($a['app_id']) === $app;
+        });
+        return empty($ann_list);
+    }
+
+
 }

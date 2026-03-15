@@ -259,7 +259,7 @@ String.prototype.translate = function () {
             }
         },
 
-        updateAction: function (apps) {
+        updateAction: function (apps, attempt) {
             var url = '?module=update&action=execute';
             var params = {
                 thread_id: this.thread_id,
@@ -277,7 +277,7 @@ String.prototype.translate = function () {
                 }
             }, function (data) {
                 try {
-                    self.updateExecuteErrorHandler(data);
+                    self.updateExecuteErrorHandler(this, apps, (attempt || 1));
                 } catch (e) {
                     console.error('Exception while execute updateExecuteErrorHandler', e);
                 }
@@ -346,20 +346,45 @@ String.prototype.translate = function () {
                     sources: data.sources
                 }).appendTo('#update-raw');
 
+                // if any new app is installed, delay showing result for additional 5 seconds
+                const any_app_installed = $('#update-result-apps .update-result-apps-list li').length > 0;
+                if (any_app_installed) {
+                    $('#update-result').hide().after('<div class="spinner custom-p-8"></div>');
+                }
+
                 setTimeout(function () {
                     var targetOffset = $('div.i-app-update-screen :last').offset().top;
                     $('div.i-app-update-screen').scrollTop(targetOffset);
+                    $('#update-result').show().siblings('.spinner').remove();
+
                     self.redirectOnComplete(data);
                     self.animateOnInstall();
-                }, 500);
+                }, any_app_installed ? 5500 : 500);
             }, 500);
         },
 
-        updateExecuteErrorHandler: function (data) {
-            this.trace('updateExecuteErrorHandler', data);
-            /*
-             * TODO handle errors and try to restart action if it possible
-             */
+        updateExecuteErrorHandler: function (xhr, apps, attempt) {
+            this.trace('updateExecuteErrorHandler', attempt);
+            console.log('Failed to start ?module=update&action=execute attempt', attempt);
+
+            // After three failed attempts we give up and show error page
+            if (attempt >= 3) {
+                document.open("text/html");
+                document.write(xhr.responseText);
+                document.close();
+                $(window).one('hashchange', function() {
+                    window.location.reload();
+                });
+                return;
+            }
+
+            // Attempt to restart action after several seconds
+            var self = this;
+            setTimeout(function() {
+                console.log('Restarting ?module=update&action=execute');
+                self.updateAction(apps, attempt+1);
+            }, 2000*attempt);
+
         },
 
         /**
@@ -510,8 +535,11 @@ String.prototype.translate = function () {
             }
 
             setTimeout(function () {
-                var targetOffset = $('div.i-app-update-screen :last').offset().top;
-                $('div.i-app-update-screen').scrollTop(targetOffset);
+                var $el = $('div.i-app-update-screen :last');
+                if ($el.length) {
+                    var targetOffset = $el.offset().top;
+                    $('div.i-app-update-screen').scrollTop(targetOffset);
+                }
             }, 100);
         },
 
@@ -550,11 +578,11 @@ String.prototype.translate = function () {
                 $itemClone.find('img').removeClass('userpic userpic-48 custom-mr-8');
                 $itemClone.addClass('-added');
 
-                const targetPosition = $itemClone.offset();
+                const targetPosition = $app_menu.find('li:first').offset();
                 const startPosition = $this.offset();
 
                 const target_params = {
-                    top: targetPosition.top,
+                    top: 0,
                     left: targetPosition.left
                 };
 
@@ -591,11 +619,12 @@ String.prototype.translate = function () {
         sendRequest: function (url, request_data, success_handler, error_handler, before_send_handler) {
             var self = this;
             var timestamp = new Date();
-            $.ajax({
+            var xhr = $.ajax({
                 url: url + '&timestamp=' + timestamp.getTime(),
                 data: request_data,
                 type: 'GET',
                 dataType: 'json',
+                global: false,
                 success: function (data, textStatus) {
                     try {
                         try {
@@ -605,7 +634,7 @@ String.prototype.translate = function () {
                         } catch (e) {
                             console.error('Invalid server JSON response', e);
                             if (typeof(error_handler) === 'function') {
-                                error_handler();
+                                error_handler.call(xhr);
                             }
                             throw e;
                         }
@@ -614,7 +643,7 @@ String.prototype.translate = function () {
                                 case 'fail' :
                                     self.displayMessage(data.errors.error || data.errors, 'error');
                                     if (typeof(error_handler) === 'function') {
-                                        error_handler(data);
+                                        error_handler.call(xhr, data);
                                     }
                                     break;
                                 case 'ok' :
@@ -622,27 +651,30 @@ String.prototype.translate = function () {
                                         success_handler(data.data);
                                     }
                                     if (data.data.redirect) {
+                                        if (data.data.nothing_to_update && data.data.error) {
+                                            alert(data.data.error);
+                                        }
                                         location.href = data.data.redirect;
                                     }
                                     break;
                                 default :
                                     console.error('unknown status response', data.status);
                                     if (typeof(error_handler) === 'function') {
-                                        error_handler(data);
+                                        error_handler.call(xhr, data);
                                     }
                                     break;
                             }
                         } else {
                             console.error('empty response', textStatus);
                             if (typeof(error_handler) === 'function') {
-                                error_handler();
+                                error_handler.call(xhr);
                             }
                             self.displayMessage('Empty server response', 'warning');
                         }
                     } catch (e) {
                         console.error('Error handling server response ', e);
                         if (typeof(error_handler) === 'function') {
-                            error_handler(data);
+                            error_handler.call(xhr, data);
                         }
                         self.displayMessage('Invalid server response' + '<br>' + e.description, 'error');
                     }
@@ -651,7 +683,7 @@ String.prototype.translate = function () {
                 error: function (XMLHttpRequest, textStatus, errorThrown) {
                     console.error('AJAX request error', [textStatus, errorThrown]);
                     if (typeof(error_handler) === 'function') {
-                        error_handler();
+                        error_handler.call(xhr);
                     }
                     self.displayMessage('AJAX request error', 'warning');
                 },

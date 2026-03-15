@@ -630,7 +630,7 @@ abstract class waLongActionController extends waController
             $attempts = 3;
             do {
                 $attempts--;
-                $failed = !copy($this->_files['new']['file'], $this->_files['old']['file']);
+                $failed = !$this->copyLockedFile($this->_fd, $this->_files['new']['file'], $this->_files['old']['file']);
                 $failed = !copy($this->_files['new']['data'], $this->_files['old']['data']) || $failed;
 
                 //clearstatcache();
@@ -677,8 +677,31 @@ abstract class waLongActionController extends waController
     }
 
     /**
+     * PHP 8+ on Windows will refuse to copy() a flock()'ed file.
+     * This implements a separate logic to copy from file descriptor.
+     */
+    protected function copyLockedFile($fd, $source, $dest)
+    {
+        if (PHP_MAJOR_VERSION >= 8 && PHP_OS_FAMILY == 'Windows') {
+            // don't have to fseek() back because _save() resets file position anyway
+            fseek($fd, 0);
+            $fd2 = fopen($dest, 'wb');
+            while ( ( $c = fread($fd, 8192))) {
+                if (strlen($c) != fwrite($fd2, $c)) {
+                    fclose($fd2);
+                    return false;
+                }
+            }
+            fclose($fd2);
+            return true;
+        } else {
+            return copy($source, $dest);
+        }
+    }
+
+    /**
      * Called when something went badly wrong so that current Runner should not continue,
-     * (at least should immidiately notify a developer if in debug mode).
+     * (at least should immediately notify a developer if in debug mode).
      * Still, not badly enough yet to break the whole long action process.
      */
     protected function runnerFatalWarning($msg)
@@ -787,7 +810,7 @@ abstract class waLongActionController extends waController
     {
         switch ($field) {
             case 'data':
-                if ($this->_runner && !$this->_transaction) {
+                if ($this->_processId && $this->_runner && !$this->_transaction) {
                     throw new waException('Data is only accessible inside a transaction.');
                 }
                 return $this->_data['data']; // by reference
@@ -827,10 +850,10 @@ abstract class waLongActionController extends waController
     {
         switch ($field) {
             case 'data':
-                if (!$this->_transaction) {
+                if ($this->_processId && !$this->_transaction) {
                     throw new waException('Data can only be changed inside a transaction.');
                 }
-                if (!$this->_runner) {
+                if ($this->_processId && !$this->_runner) {
                     throw new waException('Data can only be changed by a Runner.');
                 }
                 if (!is_array($value)) {

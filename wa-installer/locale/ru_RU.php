@@ -65,9 +65,9 @@ return array(
     => 'Запомните этот адрес — это адрес входа в ваш Вебасист.',
     'Installation Guide'
     => 'Инструкции по установке',
-    'install_quide_url'
-    => 'https://www.webasyst.ru/developers/docs/installation/',
-    'Extracting Webasyst arhcive...'
+    'install_guide_url'
+    => 'https://developers.webasyst.ru/docs/installation/',
+    'Extracting Webasyst archive...'
     => 'Распаковка архива Вебасист...',
     'Check available updates'
     => 'Проверить обновления',
@@ -157,14 +157,20 @@ return array(
     => 'Веб-сервер',
 
 
-    'Use friendly URLs'
-    => 'Есть возможность использовать ЧПУ',
+        'Use friendly URLs'
+    => 'Поддерживаются удобные для чтения адреса страниц, например, /page/1/',
     'Check archives and files checksum'
     => 'Проверка целостности архива с файлами установщика и приложениями Вебасиста',
-    'Check folder rights for install&amp;update'
+    'Check folder rights for installation &amp; updates'
     => 'Необходимый уровень прав доступа для установки Вебасиста и обновлений',
     'Get updates information from update servers'
     => 'Требуется для получения информации об обновлениях с сервера Вебасиста',
     'Finalizing installation...'
     => 'Завершаем установку...',
+    'String type functions'
+    => 'Функция определения типов символов',
+    'JavaScript data format support'
+    => 'Поддержка формата данных JavaScript',
+    'Correct Smarty functioning'
+    => 'Корректная работа Smarty',
 );

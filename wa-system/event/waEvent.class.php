@@ -155,7 +155,7 @@ class waEvent
         try {
             wa($app_id);
         } catch (Exception $e) {
-            waLog::log('Event handling error. Unable to initialize app_id '.$app_id.': '.$e->getMessage());
+            waLog::log('Event handling error. Unable to initialize app_id '.$app_id.': '.$e->getMessage()."\n".$e->getTraceAsString());
             return $result;
         }
 
@@ -186,7 +186,7 @@ class waEvent
                 }
             }
         } catch (Exception $e) {
-            waLog::log('Event handling error in '.$class.': '.$e->getMessage());
+            waLog::log('Event handling error in '.$class.': '.$e->getMessage()."\n".$e->getTraceAsString());
         }
         wa()->popActivePlugin();
 
@@ -247,7 +247,10 @@ class waEvent
                 $plugin_result = $plugin->$method($params, $this->name);
 
                 if ($plugin_result !== null) {
-                    if (isset($this->options['array_keys']) && is_array($plugin_result)) {
+                    if (isset($this->options['array_keys']) && is_array($this->options['array_keys'])) {
+                        if (!is_array($plugin_result)) {
+                            $plugin_result = ['' => $plugin_result];
+                        }
                         foreach ($this->options['array_keys'] as $k) {
                             if (!isset($plugin_result[$k])) {
                                 $plugin_result[$k] = '';
@@ -404,7 +407,7 @@ class waEvent
             $plugin_info['id'] = $plugin_id;
             $plugin_info['app_id'] = $app_id;
             if (isset($plugin_info['img'])) {
-                $plugin_info['img'] = 'wa-apps/'.$app_id.'/plugins/'.$plugin_id.'/'.$plugin_info['img'];
+                $plugin_info['img'] = ltrim(wa()->getAppStaticUrl($app_id).'plugins/'.$plugin_id.'/'.$plugin_info['img'], '/');
             }
             if (isset($plugin_info['rights']) && $plugin_info['rights']) {
                 if (!isset($plugin_info['handlers']['rights.config'])) {
@@ -414,6 +417,11 @@ class waEvent
             if (isset($plugin_info['frontend']) && $plugin_info['frontend']) {
                 if (!isset($plugin_info['handlers']['routing'])) {
                     $plugin_info['handlers']['routing'] = 'routing';
+                }
+            }
+            if (isset($plugin_info['cron']) && $plugin_info['cron']) {
+                if (!isset($plugin_info['handlers']['cron'])) {
+                    $plugin_info['handlers']['cron'] = 'cron';
                 }
             }
             if (!empty($plugin_info[$app_id.'_settings'])) {
@@ -775,6 +783,9 @@ class waEvent
      */
     protected function getRegex($event)
     {
+        if (!is_string($event)) {
+            return $event;
+        }
         if (substr($event, -2, 2) === '.*') {
             //Escape last dot and other previous regex symbol. After add a regular expression .*
             $regex = '/'.preg_quote(substr($event, 0, -1)).'.*/';

@@ -27,7 +27,6 @@ var InstallerStore = (function ($) {
         var that = this;
 
         that.setDefaultFilters();
-        that.initToggle();
         that.initIframe(true);
         that.initLoader();
         that.initEventListener();
@@ -46,16 +45,6 @@ var InstallerStore = (function ($) {
             }
         }
     };
-
-    InstallerStore.prototype.initToggle = function() {
-        const that = this;
-
-        that.$toggle.waToggle({
-            change: function(event, target, toggle) {
-                //console.log(event, target, toggle)
-            }
-        });
-    }
 
     InstallerStore.prototype.initLoader = function() {
         const that = this;
@@ -166,6 +155,10 @@ var InstallerStore = (function ($) {
 
                     case 'product_remove':
                         that.productRemove(data.data);
+                        break;
+
+                    case 'bundle_install':
+                        that.bundleInstall(data.data);
                         break;
 
                     case 'product_rate_init':
@@ -338,14 +331,33 @@ var InstallerStore = (function ($) {
 
         if (data.trial) {
             fields.push({name: 'trial', value: data.trial});
+            if(data.type === 'theme') {
+                fields.push({name: 'is_trial_theme', value: 1});
+            }
         }
 
-        // If the Store is open in app (not the Installer) -
-        // before installing show the confirm.
-        // App can cancel confirmations in the options!
-        if (!that.options.in_app || (that.options.in_app && confirm(that.options.locale['confirm_product_install']))) {
+        if (!that.options.in_app) {
             that.initForm(url, fields);
+            return;
         }
+
+        that.initInstallationDialog(fields, data);
+    };
+
+    InstallerStore.prototype.bundleInstall = function (data) {
+        var that = this,
+            matches = document.cookie.match(new RegExp("(?:^|; )_csrf=([^;]*)")),
+            csrf = matches ? decodeURIComponent(matches[1]) : that.options.csrf,
+            url = that.options.app_url + '?module=update&action=manager',
+            fields = [
+                { name: 'install', value: 1 },
+                { name: '_csrf', value: csrf }
+            ];
+
+        $.each(data, function (i, product) {
+            fields.push({name: 'app_id['+ product.slug +']', value: product.vendor});
+        });
+        that.initForm(url, fields);
     };
 
     InstallerStore.prototype.productUpdate = function (data) {
@@ -372,7 +384,12 @@ var InstallerStore = (function ($) {
             fields.push({name: 'app_id['+ slug +']', value: data.vendor});
         });
 
-        that.initForm(url, fields);
+        if (!that.options.in_app) {
+            that.initForm(url, fields);
+            return;
+        }
+
+        that.initInstallationDialog(fields);
     };
 
     InstallerStore.prototype.productRemove = function (data) {
@@ -688,6 +705,10 @@ var InstallerStore = (function ($) {
     };
 
     InstallerStore.prototype.initForm = function (url, fields) {
+        this.postMessage({
+            action: 'product_install_pong'
+        });
+
         var $form = $('<form>', {
             action: url,
             method: 'post'
@@ -702,6 +723,83 @@ var InstallerStore = (function ($) {
         });
 
         $form.appendTo('body').submit();
+    };
+
+    InstallerStore.prototype.initInstallationDialog = function(fields, data = null) {
+        var that = this;
+        $.post(that.options.app_url + '?module=update&action=managerDialog', fields).then(function(html) {
+            $.waDialog({
+                html,
+                esc: false,
+                onOpen($dialog, dialog) {
+                    const search_msg_code = '/*msg_code=';
+                    let enable_alert = false;
+                    const is_trial_theme = fields.some(item => item.name === 'is_trial_theme');
+
+                    if (html.includes(search_msg_code)) {
+                        const allowed_msg_code = ['dev_mode_is_on'];
+                        if(!is_trial_theme) {
+                            allowed_msg_code.push('update_in_progress');
+                        }
+                        const start_index = html.indexOf(search_msg_code) + search_msg_code.length;
+                        const end_index = html.indexOf('*/', start_index);
+                        const msg_code = end_index !== -1 ? html.slice(start_index, end_index) : null;
+
+                        enable_alert = allowed_msg_code.includes(msg_code);
+                    }
+
+                    if (!enable_alert) {
+                        const textMatch = html.match(/text:\s*"(.*?)",\s*button_title:/s);
+                        const text = textMatch ? textMatch[1] : null;
+                        if (text) {
+                            console.error(JSON.parse(`"${text}"`))
+                        }
+                        dialog.close();
+                        $dialog.next('.dialog').remove();
+                    }
+
+                    $dialog.trigger('installer_dialog_ready', [dialog, $dialog, is_trial_theme]);
+                    $dialog.on('installer_installation_successfull', function() {
+                        if (that.options.in_app) {
+                            dialog.$content.find('.progressbar').hide();
+                            dialog.$content.find('.js-update-success').show();
+                            dialog.resize();
+
+                            dialog.$content.find('.js-go-to-settings').on('click', function() {
+
+                                if(typeof data?.id === 'number') {
+                                    data.id = data?.slug.split('/').pop();
+                                }
+
+                                $(document).trigger('installer_after_install_go_to_settings', {
+                                    type: data?.type,
+                                    id: data?.id,
+                                    is_payment: data?.slug.includes('/payment/'),
+                                    is_shipping: data?.slug.includes('/shipping/')
+                                });
+
+                                dialog.close();
+                            });
+                        } else {
+                            setTimeout(function() {
+                                dialog.close();
+                            }, 1200);
+                            if (that.options.go_return_hash_after_installation) {
+                                const return_url = fields.find(f => f.name === 'return_url');
+                                if (return_url) {
+                                    location.href = return_url.value;
+                                }
+                            }
+                            location.reload();
+                        }
+                    });
+                }
+            });
+
+            that.postMessage({
+                action: 'product_install_pong'
+            });
+        });
     };
 
     InstallerStore.prototype.setDefaultFilters = function() {
@@ -739,14 +837,7 @@ var InstallerStore = (function ($) {
     InstallerStore.prototype.toggleAnimate = function(link) {
         $(link).addClass('selected').siblings('a').removeClass('selected');
 
-        const thisLeftPos = $(link).position().left;
-        const thisWidth = $(link).width();
         const type = $(link).data('type-link');
-
-        $(link).siblings('.animation-block').css({
-            'left': thisLeftPos,
-            'width': thisWidth,
-        });
 
         $('.js-installer-sidebar-menu').hide();
 

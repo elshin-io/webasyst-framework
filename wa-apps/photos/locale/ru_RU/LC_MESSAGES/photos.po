@@ -12,7 +12,7 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=((((n%10)==1)&&((n%100)!=11))?(0):(((((n%10)>=2)&&((n%10)<=4))&&(((n%100)<10)||((n%100)>=20)))?(1):2));\n"
 "X-Poedit-SourceCharset: utf-8\n"
 "X-Poedit-Basepath: .\n"
-"X-Generator: Poedit 3.0.1\n"
+"X-Generator: Poedit 3.4.2\n"
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPath-1: .\n"
 
@@ -22,9 +22,6 @@ msgstr "Фото"
 msgid "Rate photo"
 msgstr "Оценить"
 
-msgid "Next"
-msgstr "Следующий"
-
 msgid "edit"
 msgstr "редактировать"
 
@@ -33,9 +30,6 @@ msgstr "Альбомы"
 
 msgid "Share"
 msgstr "Отправить"
-
-msgid "Embed"
-msgstr "Виджет"
 
 msgid "Organize"
 msgstr "Организовать"
@@ -109,15 +103,6 @@ msgstr "Сохранить"
 msgid "Saved"
 msgstr "Сохранено"
 
-msgid "Plugin does not offer configuration settings."
-msgstr "Этот плагин не предоставляет возможность изменения настроек."
-
-msgid "Unknown plugin"
-msgstr "Неизвестный плагин"
-
-msgid "No plugins installed"
-msgstr "Плагины не установлены"
-
 msgid "Loading..."
 msgstr "Загрузка..."
 
@@ -136,18 +121,6 @@ msgstr "Доступ"
 msgid "Delete"
 msgstr "Удалить"
 
-msgid "%d photo will be deleted without the ability to restore. "
-msgid_plural "%d photos will be deleted without the ability to restore. "
-msgstr[0] "%d фотография будет безвозвратно удалена. "
-msgstr[1] "%d фотографии будут безвозвратно удалены. "
-msgstr[2] "%d фотографий будут безвозвратно удалены. "
-
-msgid "%d photo have been successfully uploaded"
-msgid_plural "%d photos have been successfully uploaded"
-msgstr[0] "%d фотография успешно загружена"
-msgstr[1] "%d фотографии успешно загружены"
-msgstr[2] "%d фотографий успешно загружены"
-
 msgid "Photo “%s” will be deleted without the ability to restore. "
 msgstr "Фотография «%s» будет безвозвратно удалена. "
 
@@ -157,7 +130,7 @@ msgstr[0] "Группа из %d фотографии будет разобран
 msgstr[1] "Группа из %d фотографий будет разобрана."
 msgstr[2] "Группа из %d фотографий будет разобрана."
 
-msgid "Are your shure?"
+msgid "Are you sure?"
 msgstr "Вы уверены?"
 
 msgid "Stack is empty"
@@ -189,12 +162,6 @@ msgid_plural "%d photos"
 msgstr[0] "%d фотография"
 msgstr[1] "%d фотографии"
 msgstr[2] "%d фотографий"
-
-msgid "of %d photo"
-msgid_plural "of %d photos"
-msgstr[0] "из %d фотографии"
-msgstr[1] "из %d фотографий"
-msgstr[2] "из %d фотографий"
 
 msgid "Upload photos (%d)"
 msgstr "Загрузить фотографии (%d)"
@@ -232,47 +199,32 @@ msgstr "отмена"
 msgid "Photostream"
 msgstr "Фотопоток"
 
-msgid "Plugin %s is installed and working."
-msgstr "Плагин «%s» установлен и работает."
-
-msgid "No configuration options are available for this plugin."
-msgstr "Этот плагин не предоставляет возможность изменения настроек."
-
-msgid "Plugin order defines the order they are executed. Sort plugin list to change the order."
-msgstr "Порядок сортировки плагинов настраивается перетаскиванием и определяет порядок их подключения."
-
-msgid "Static album which allows adding and arranging photos in manually"
-msgstr "Статический альбом, фотографии в котором добавляются и упорядочиваются вручную"
-
 msgid "Smart album"
 msgstr "«Умный» альбом"
-
-msgid "Dynamic album based on search criteria, e.g. rating, album hierarchy, tags"
-msgstr "Динамический альбом, содержимое которого формируется согласно указанными параметрам, например, по оценкам или тегам"
 
 msgid "Public"
 msgstr "Опубликованный"
 
-msgid "Album is visible in the public gallery"
-msgstr "Альбом доступен в фотогалерее на сайте"
+msgid "The album is visible in the public gallery."
+msgstr "Альбом доступен в фотогалерее на сайте."
 
 msgid "Private"
 msgstr "Приватный"
 
-msgid "Album is visible only to authorized users of the Photos app, or by a private link"
-msgstr "Альбом доступен только авторизованным пользователям приложения «Фото» или по временной приватной ссылке"
+msgid "The album is visible only to authorized users of the Photos app or via a private link."
+msgstr "Альбом доступен только авторизованным пользователям приложения «Фото» или по временной приватной ссылке."
 
 msgid "Privacy settings"
 msgstr "Настройки доступа"
 
-msgid "Select user groups you want to have access to this album"
-msgstr "Выберите группы пользователей, которым будет предоставлен доступ к альбому"
+msgid "Select user groups which you want to have access to this album:"
+msgstr "Выберите группы пользователей, которым вы хотите показать этот альбом:"
 
 msgid "Uncheck all groups to make this album visible to you only"
 msgstr "Выключите галочки для всех групп, чтобы доступ к альбому был только у вас"
 
-msgid "There are no user groups in your Webasyst installation. Add groups in the Contacts app to be able to manage access to photos"
-msgstr "В вашей установке Вебасиста нет ни одной группы пользователей. Чтобы управлять доступом к фотографиям, добавьте хотя бы одну группы пользователей в приложении «Контакты»"
+msgid "There are no user groups set up in your Webasyst account. Add groups in the Team app to be able to manage access to photos."
+msgstr "В вашем Webasyst-аккаунте нет ни одной группы пользователей. Чтобы управлять доступом к фотографиям, добавьте хотя бы одну группу пользователей в приложении «Команда»."
 
 msgid "Album settings"
 msgstr "Настройки альбома"
@@ -289,7 +241,7 @@ msgstr "Описание"
 msgid "Custom parameters"
 msgstr "Дополнительные параметры"
 
-msgid "Optional set of custom <em>key=value</em> parameters which can be used within a frontend's theme template as <em>&#123;$album.key&#125;</em>. Each key=value pair should be on a separate line."
+msgid "Optional set of custom <em>key=value</em> parameters, which can be used in frontend theme templates as <em>&#123;$album.key&#125;</em>. Each key=value pair must be specified on a separate line."
 msgstr "Необязательный набор параметров вида <em>key=value</em>, к значениям которых можно обращаться в шаблоне темы фронтенда как <em>&#123;$album.key&#125;</em>. Каждая пара key=value должна быть указана на отдельной строке."
 
 msgid "Rating"
@@ -316,9 +268,6 @@ msgstr "Адрес изображения"
 msgid "Image URLs of private photos are temporary. Permanent linking (embedding) is not recommended."
 msgstr "Для приватных фотографий используются временные адреса. Использовать приватные фотографии для публикации не рекомендуется."
 
-msgid "Image size"
-msgstr "Размер изображения"
-
 msgid "Close"
 msgstr "Закрыть"
 
@@ -334,8 +283,8 @@ msgstr "ОК"
 msgid "Don't delete photos"
 msgstr "Не удалять фотографии"
 
-msgid "All photos will remain in the photo stream, and only the album will be deleted"
-msgstr "Все фотографии сохранятся в фотопотоке, удален будет только альбом."
+msgid "Only the album will be deleted. All photos will remain in the photo stream."
+msgstr "Все фотографии сохранятся в фотопотоке, будет удален только альбом."
 
 msgid "Delete all photos stored in this album (%d)"
 msgstr "Удалить все фотографии из этого альбома (%d)"
@@ -364,7 +313,7 @@ msgstr "Описания"
 msgid "Smarty"
 msgstr "Smarty"
 
-msgid "For embedding into other Webasyst apps content."
+msgid "For embedding in other Webasyst apps’ pages."
 msgstr "Для размещения на страницах других приложений Webasyst."
 
 msgid "Image URLs"
@@ -397,8 +346,8 @@ msgstr "Оценить фото"
 msgid "Cancel"
 msgstr "Отмена"
 
-msgid "No one album exists"
-msgstr "Нет альбомов"
+msgid "No albums added."
+msgstr "Альбомы не созданы."
 
 msgid "Access to photos"
 msgstr "Доступ к фотографиям"
@@ -409,11 +358,8 @@ msgstr "Фотографии доступны в фотогалерее на с�
 msgid "Visible only to authorized users of the Webasyst Photos app"
 msgstr "Фотографии доступны только авторизованным пользователям приложения «Фото»"
 
-msgid "Select user groups you want to have see this album"
-msgstr "Выберите группы пользователей, которым вы хотите показать этот альбом"
-
-msgid "There are no user groups thus you cant't manage access to photos"
-msgstr "Группы пользователей не созданы, поэтому настройка прав доступа недоступна"
+msgid "No user groups have been set up; therefore, you can’t manage access to photos."
+msgstr "Группы пользователей не созданы, поэтому настройка прав доступа недоступна."
 
 msgid "Select photos"
 msgstr "Выберите фотографии"
@@ -421,14 +367,14 @@ msgstr "Выберите фотографии"
 msgid "or drag photos here"
 msgstr "или перетащите фотографии сюда"
 
-msgid "Photos automatically appear in the public gallery"
-msgstr "Фотографии автоматически появляются в фотогалерее на сайте"
+msgid "Photos will automatically appear in the public gallery."
+msgstr "Фотографии автоматически появляются в фотогалерее на сайте."
 
-msgid "Only authorized users of the Webasyst Photos app can see these photos. Photos can be shared via sending a secure private link, or via embedded into external websites and apps"
+msgid "Only authorized users of Webasyst Photos app can see these images. Images can be shared by sending a secure private link or can be embedded in external websites and apps."
 msgstr "Только авторизованные пользователи бекенда смогут увидеть эти фотографии. Показать фото другим можно будет по временной приватной ссылке"
 
-msgid "Select user groups you want to have access to these photos:"
-msgstr "Выберите группы пользователей, которым будет предоставлен доступ к фотографиям:"
+msgid "Select user groups which you want to have access to these photos:"
+msgstr "Выберите группы пользователей, которым будет предоставлен доступ к этим фотографиям:"
 
 msgid "Uncheck all groups to make photos visible to you only."
 msgstr "Выключите галочки для всех групп, чтобы доступ к фото был только у вас."
@@ -439,7 +385,7 @@ msgstr "Не добавлять в альбомы"
 msgid "Create new album"
 msgstr "Создать новый альбом"
 
-msgid "Name the album for this upload"
+msgid "Enter the name for a new album"
 msgstr "Введите название альбома для этой загрузки"
 
 msgid "Stop upload"
@@ -448,7 +394,7 @@ msgstr "Прервать"
 msgid "Files uploaded with errors"
 msgstr "Файлы загружены с ошибками."
 
-msgid "Failed to upload. Most probably, there were not enough memory to create thumbnails."
+msgid "Failed to upload. Perhaps there was not enough memory to create image thumbnails."
 msgstr "Загрузка не удалась. Возможно, недостаточно оперативной памяти для создания эскизов изображений."
 
 msgid "Settings updated"
@@ -457,7 +403,7 @@ msgstr "Настройки сохранены"
 msgid "Thumbnails"
 msgstr "Эскизы"
 
-msgid "Thumbnails to be created when photo is uploaded"
+msgid "Image thumbnails created during photo upload"
 msgstr "Создание эскизов при загрузке изображений"
 
 msgid "Square crop"
@@ -493,14 +439,14 @@ msgstr "Эскизы произвольных размеров"
 msgid "Allow on demand generation of custom-sized thumbnails"
 msgstr "Разрешить создание эскизов произвольных размеров по требованию"
 
-msgid "If enabled, frontend design theme can request Photos app to create custom-sized photo thumbnails on fly (any size in addition to the listed above, including cropped versions)"
+msgid "If enabled, frontend design theme can request Photos app to create custom-sized photo thumbnails on the fly (the thumbnail size is contained in the image URL)."
 msgstr "Включите, чтобы позволить приложению «на лету» создавать эскизы фотографий произвольных размеров (размер эскиза указывается в URL файла)."
 
 msgid "Max thumbnail size"
 msgstr "Максимальный размер эскиза"
 
-msgid "Limits the maximum thumbnail size that can be created on demand. Must not be less than 970 px."
-msgstr "Максимальный возможный размер эскиза изображения, созданного по требованию. Не должен превышать 970 пикселей."
+msgid "Limits the maximum size of thumbnails which can be created on demand. Must not be less than 970 px."
+msgstr "Максимальный возможный размер эскиза изображений, создаваемых по требованию. Не должен превышать 970 пикселей."
 
 msgid "Sharpen"
 msgstr "Резкость"
@@ -511,8 +457,8 @@ msgstr "Применить фильтр резкости при создании
 msgid "Click “Save” button below to apply this change."
 msgstr "Щелкните по кнопке «Сохранить» внизу, чтобы применить это изменение."
 
-msgid "Files with extensions *.gif, *.jpg, *.jpeg, *.png, *.webp are allowed only."
-msgstr "Допускаются только файлы с расширениями имени *.gif, *.jpg, *.jpeg, *.png, *.webp"
+msgid "Only files with name extensions *.gif, *.jpg, *.jpeg, *.png, *.webp are allowed."
+msgstr "Допускаются только файлы с расширениями имени *.gif, *.jpg, *.jpeg, *.png, *.webp."
 
 msgid "You don't have sufficient access rights"
 msgstr "У вас недостаточно прав доступа."
@@ -553,17 +499,11 @@ msgstr "Тег «%s»"
 msgid "Editors’ choice"
 msgstr "Избранное"
 
-msgid "<br>Photo URLs: with prefix 'photo' <strong>/photo/photo_url/</strong>, e.g. /photo/DSC_2051/<br>Album URLs: without prefix 'album' <strong>/&lt;full_path_to_album&gt;/</strong>, e.g. /travel/france/2010/"
+msgid "<br>Photo URLs: with the 'photo' prefix <strong>/photo/photo_url/</strong>; e.g., /photo/DSC_2051/<br>Album URLs: without the 'album' prefix <strong>/&lt;full_path_to_album&gt;/</strong>; e.g., /travel/france/2010/"
 msgstr "<br>Адреса фотографий: с префиксом 'photo' <strong>/photo/photo_url/</strong>, например: /photo/DSC_2051/<br>Адреса альбомов: без префикса 'album' <strong>/&lt;full_path_to_album&gt;/</strong>, например: /travel/france/2010/"
 
-msgid "<br>Photo URLs: without prefix 'photo' <strong>/photo_url/</strong>, e.g. /DSC_2051/<br>Album URLs: with prefix 'album' <strong>/album/&lt;full_path_to_album&gt;/</strong>, e.g. /album/travel/france/2010/"
+msgid "<br>Photo URLs: without the 'photo' prefix <strong>/photo_url/</strong>; e.g., /DSC_2051/<br>Album URLs: with the 'album' prefix <strong>/album/&lt;full_path_to_album&gt;/</strong>; e.g., /album/travel/france/2010/"
 msgstr "<br>Адреса фотографий: без префикса 'photo' <strong>/photo_url/</strong>, например: /DSC_2051/<br>Адреса альбомов: с префиксом 'album' <strong>/album/&lt;full_path_to_album&gt;/</strong>, например, /album/travel/france/2010/"
-
-msgid "Rendered html block of links' to album in where is curret photo"
-msgstr "Готовый блок HTML-кода ссылок на альбом, содержащий текущую фотографию"
-
-msgid "Rendered html block of photo's author info"
-msgstr "Готовый блок HTML-кода с информацией об авторе фотографии"
 
 msgid "URLs"
 msgstr "Адреса"
@@ -574,50 +514,11 @@ msgstr "Без /album/"
 msgid "With /album/"
 msgstr "С /album/"
 
-msgid "Get single photo by numerical id (photo_id) with specified size (numerical or size name e.g. big, middle, crop)"
-msgstr "Получить одну фотографию по ее числовому идентификатору (photo_id) с указанными размерами (в виде числа или фиксированного значения: big, middle, crop)"
-
-msgid "Get photos list by search conditions e.g. tag/my_tag, album/12, id/1,5,7"
-msgstr "Получить список фотографий по условию поиска, например: tag/my_tag, album/12, id/1,5,7"
-
-msgid "One or more optional custom params, setted by album settings in backend in key-value format, i.e. available like {$album.key}"
-msgstr "Один или более дополнительных параметров, сохраненных в настройках альбома в формате key=value и доступных для использования в виде {$album.key}"
-
-msgid "Core content loaded according to the requested resource: a blog post, post stream, a page, etc."
-msgstr "Основное содержимое, загруженное в соответствии с запросом пользователя: запись блога, поток записей, страница и т. д."
-
-msgid "Optional var. Available only if current context of photo is album. Below are describe keys of this param"
-msgstr "Необязательная переменная. Доступна, только если текущим контекстом фотографии является альбом. Ниже описаны ключи этого параметра."
-
-msgid "Url to next photo"
-msgstr "Адрес следующей фотографии"
-
-msgid "Rendered photo-stream widget"
-msgstr "Готовый виджет фотопотока"
-
-msgid "Rendered html block of tags"
-msgstr "Готовый блок HTML-кода тегов"
-
-msgid "Rendered html block of exif info"
-msgstr "Готовый блок HTML-кода с EXIF-данными"
-
-msgid "Hooks to this page. Below are describe keys of this param"
-msgstr "Хуки для этой страницы. Ниже описаны ключи этого параметра."
-
-msgid "Under photo, in bottom hook"
-msgstr "Под фотографией, в нижнем хуке."
-
-msgid "See description of vars for photo.html"
-msgstr "См. описание переменных для photo.html."
-
 msgid "Can upload photos and create new albums"
 msgstr "Загрузка фотографий и создание новых альбомов"
 
 msgid "Can edit and delete photos and albums uploaded by other users"
 msgstr "Редактирование и удаление фотографий и альбомов, загруженных другими пользователями"
-
-msgid "Can edit pages"
-msgstr "Редактирование страниц"
 
 msgid "Access denied"
 msgstr "Доступ запрещен"
@@ -634,7 +535,7 @@ msgstr "Не могу изменить альбом: неизвестное св
 msgid "Unknown photo"
 msgstr "Неизвестная фотография"
 
-msgid "Not choosen any photos"
+msgid "Not photos selected."
 msgstr "Не выбрана ни одна фотография."
 
 msgid "Tag not found"
@@ -664,14 +565,8 @@ msgstr "Страница не найдена."
 msgid "Choose rate"
 msgstr "Выберите оценку"
 
-msgid "Are you sure to delete photo?"
-msgstr "Вы уверены, что хотите удалить фотографию?"
-
-msgid "Error"
-msgstr "Ошибка"
-
-msgid "The requested resource is not available."
-msgstr "Запрошенный ресурс недоступен."
+msgid "Are you sure to delete this photo?"
+msgstr "Вы уверены, что хотите удалить эту фотографию?"
 
 msgid "Logout"
 msgstr "Выйти"
@@ -682,17 +577,11 @@ msgstr "Регистрация"
 msgid "Login"
 msgstr "Вход"
 
-msgid "Powered by Webasyst"
-msgstr "Работает на основе Webasyst"
-
 msgid "Normal size"
 msgstr "Обычный размер"
 
 msgid "Private photos selected"
 msgstr "Выбраны приватные фотографии"
-
-msgid "%d of %d selected photos are <strong>private photos</strong>, and they are not recommended for permanent linking (embedding). Private photo URLs may be changed by the Photos app at any time."
-msgstr "%d из %d выбранных фотографий являются <strong>приватными</strong>. Публиковать приватные фотографии не рекомендуется в связи с тем, что их адреса являются временными и могут быть изменены приложением «Фото» без дополнительных уведомлений."
 
 msgid "Embed anyway"
 msgstr "Опубликовать все равно"
@@ -712,7 +601,7 @@ msgstr "опубликованный"
 msgid "private"
 msgstr "приватный"
 
-msgid "Hide photos name"
+msgid "Hide photos’ names"
 msgstr "Скрыть названия"
 
 msgid "Private photo"
@@ -723,9 +612,6 @@ msgstr "Начать загрузку"
 
 msgid "Thank you!"
 msgstr "Спасибо!"
-
-msgid "You have successfully signed up."
-msgstr "Вы успешно зарегистрировались."
 
 msgid "Order"
 msgstr "Сортировка"
@@ -763,10 +649,10 @@ msgstr "из %d"
 msgid "Originals"
 msgstr "Оригиналы"
 
-msgid "Backup photo originals"
+msgid "Back up original photos"
 msgstr "Хранить оригиналы фотографий"
 
-msgid "When enabled, every uploaded image file is automatically backed up and stored independently from photo full size version, which is modified when you edit it, e.g. rotate, apply watermarks or image visual effects. Originals are never updated. Pros: you have backups of all uploaded images. Cons: almost twice more disk space is required for storing original images than for storing only full size versions and thumbnails."
+msgid "When enabled, every uploaded image file is automatically backed up and stored independently of the photo's full-size version, which is modified when you edit it; e.g., rotate, apply watermarks or image visual effects. Original images are never updated. Pros: you have backups of all uploaded images. Cons: almost twice as much disk space is required to store original images in addition to full-size versions and thumbnails."
 msgstr "Оригинальные изображения будут сохранены отдельно от полноразмерной версии и не будут меняться, когда вы редактируете фотографию (например, при поворотах изображения, применении к изображению фильтров, наложению водяных знаков). Плюсы: у каждой фотографии есть резервная копия, бекап. Минусы: для хранения оригиналов требуется примерно в два раза больше места на диске."
 
 msgid "Unsaved changes will be lost if you leave this page now. Are you sure?"
@@ -775,20 +661,14 @@ msgstr "Несохраненные изменения будут потерян�
 msgid "Uploaded by"
 msgstr "Автор:"
 
-msgid "Rendered HTML block of links to albums which current photo belongs to"
+msgid "Rendered HTML block of links to albums containing the current photo"
 msgstr "HTML-блок ссылок на альбомы, к которым относится эта фотография"
 
-msgid "Rendered HTML block of current photo author info"
+msgid "Rendered HTML block of the current photo’s author info"
 msgstr "HTML-блок с информацией об авторе этой фотографии"
 
 msgid "Returns entire tag list as an array with the following structure: (<em>\"id\"</em>, <em>\"name\"</em>, <em>\"count\"</em>, <em>\"size\"</em>, <em>\"opacity\"</em>)"
 msgstr "Возвращает весь список тегов в виде массива следующего формата: <em>\"id\"</em>, <em>\"name\"</em>, <em>\"count\"</em>, <em>\"size\"</em>, <em>\"opacity\"</em>"
-
-msgid "Returns photo by id (<em>photo_id</em>) as an array with the following structure: (<em>\"id\"</em>, <em>\"name\"</em>, <em>\"description\"</em>, <em>\"ext\"</em>, <em>\"size\"</em>, <em>\"type\"</em>, <em>\"rate\"</em>, <em>\"width\"</em>, <em>\"height\"</em>, <em>\"contact_id\"</em>, <em>\"upload_datetime\"</em>, <em>\"edit_datetime\"</em>, <em>\"status\"</em>, <em>\"hash\"</em>, <em>\"url\"</em>, <em>\"parent_id\"</em>, <em>\"stack_count\"</em>, <em>\"sort\"</em>, <em>\"thumb_%size%\"</em>). Optional <em>size</em> parameter can be used to fetch particular thumbnail size: should be provided in pixels, or as one of the predefined values: <em>\"big\"</em> for 970, <em>\"middle\"</em> for 750, <em>\"thumbs\"</em> for 200x0, <em>\"crop\"</em> for 96x96"
-msgstr "Возвращает фотографию по её id (<em>photo_id</em>) в виде массива со следующей структурой: (<em>\"id\"</em>, <em>\"name\"</em>, <em>\"description\"</em>, <em>\"ext\"</em>, <em>\"size\"</em>, <em>\"type\"</em>, <em>\"rate\"</em>, <em>\"width\"</em>, <em>\"height\"</em>, <em>\"contact_id\"</em>, <em>\"upload_datetime\"</em>, <em>\"edit_datetime\"</em>, <em>\"status\"</em>, <em>\"hash\"</em>, <em>\"url\"</em>, <em>\"parent_id\"</em>, <em>\"stack_count\"</em>, <em>\"sort\"</em>, <em>\"thumb_%size%\"</em>). Можно использовать необязательный параметр <em>size</em> для получения конкретного размера эскиза, который должен быть указан в виде значения в пикселях либо в виде одного из фиксированных значений: <em>\"big\"</em> (970), <em>\"middle\"</em> (750), <em>\"thumbs\"</em> (200x0), <em>\"crop\"</em> (96x96)."
-
-msgid "Returns photo list array by search criteria, e.g. <em>\"tag/vacations\"</em>, <em>\"album/12\"</em>, <em>\"id/1,5,7\"</em>"
-msgstr "Возвращает массив со списком фотографий в соответствии с параметрами поиска, например: <em>\"tag/vacations\"</em>, <em>\"album/12\"</em>, <em>\"id/1,5,7\"</em>."
 
 msgid "Photo album id. Other elements of <em>$album</em> available in this template are listed below"
 msgstr "Идентификатор фотоальбома. Другие элементы массива <em>$album</em>, доступные в шаблоне, перечислены ниже"
@@ -802,8 +682,8 @@ msgstr "Основное содержимое, загружаемое в соо�
 msgid "Photo id. Other elements of <em>$photo</em> available in this template are listed below"
 msgstr "Идентификатор фотографии. Другие элементы массива <em>$photo</em>, доступные в этом шаблоне, перечислены ниже."
 
-msgid "Conditional! Available only if current context of photo is album. Below are describe keys of this param"
-msgstr "Метод доступен, только если текущим контекстом фотографии является альбом. Ниже описаны ключи этого параметра."
+msgid "Conditional! Available only if current context of photo is album. Below are described available keys of this parameter."
+msgstr "Метод доступен, только если текущим контекстом фотографии является альбом. Ниже описаны доступные ключи этого параметра."
 
 msgid "URL of next photo in the photo stream"
 msgstr "URL следующей фотографии в потоке"
@@ -826,8 +706,8 @@ msgstr "Такой адрес уже используется"
 msgid "Photo doesn't exists"
 msgstr "Фотография не найдена"
 
-msgid "Uncheck all groups to make this album visible to you only."
-msgstr "Отключите все группы, чтобы сделать этот альбом доступным только вам."
+msgid "Uncheck all groups to set personal access only."
+msgstr "Отключите все группы, чтобы установить только персональный доступ."
 
 msgid "Not available for smart albums."
 msgstr "Опция недоступна для «умных» альбомов."
@@ -844,10 +724,10 @@ msgstr "Восстановить"
 msgid "Empty result"
 msgstr "Сервер вернул пустой ответ"
 
-msgid "This will reset all changes you applied to the image after upload, and will restore the image to its original. Are you sure?"
-msgstr "Восставление из оригинала сбросит все изменения, которые вы делали с фотографией после загрузки. Восстановить?"
+msgid "This will reset all changes you applied to the image after upload and will restore the original image. Are you sure?"
+msgstr "Восстановление из оригинала сбросит все изменения, которые вы делали с фотографией после загрузки. Восстановить?"
 
-msgid "This album will not be visible in the public gallery because there are no routing rules for the Photos app in your website settings. Use Site app (Routing section) to settle Photos app on your website and to start publishing photos."
+msgid "This album will not be visible in the public gallery because there are no routing rules set up for Photos app in your website settings. Use Site app’s “Structure” section to settle Photos app on your website and to start publishing photos."
 msgstr "Альбом не будут опубликован на вашем сайте, потому что приложение «Фото» не подключено правилами маршрутизации. Чтобы публиковать фотографии и альбомы, поселите приложение «Фото» в разделе «Маршрутизация» внутри приложения «Сайт»."
 
 msgid "Apps"
@@ -862,7 +742,7 @@ msgstr "Темы дизайна"
 msgid "Design"
 msgstr "Дизайн"
 
-msgid "Returns photo list array by search criteria, e.g. <em>\"tag/vacations\"</em>, <em>\"album/12\"</em>, <em>\"id/1,5,7\"</em>. <em>size</em> parameter indicates thumbnail size. <em>limit</em> parameter is MySQL-like: can be either a number (max number of photos to be returned) or a pair of offset, limit (start from and the max number of records to be returned)"
+msgid "Returns a photo list array by search criteria; e.g., <em>\"tag/vacations\"</em>, <em>\"album/12\"</em>, <em>\"id/1,5,7\"</em>. <em>size</em> parameter indicates thumbnail size. The <em>limit</em> parameter is similar to that used in SQL: it can be either a number (max number of photos to be returned) or a pair of offset and limit (start from and the max number of records to be returned)."
 msgstr "Возвращает массив списка изображений по заданным критериям, например, <em>\"tag/vacations\"</em>, <em>\"album/12\"</em>, <em>\"id/1,5,7\"</em>. Параметр <em>size</em> обозначает размер эскиза. Параметр <em>limit</em> используется по аналогии с MySQL: либо одно число (макс. кол-во изображений), либо пара чисел «смещение, ограничение» (т. е. номер первого изображения и общее максимальное количество)."
 
 msgid "Latest uploaded photos"
@@ -910,12 +790,6 @@ msgstr "Качество эскизов"
 msgid "JPEG compression quality for photo thumbnails. From 0 (min quality, min file size) to 100 (max quality, max file size). 90 is recommended."
 msgstr "Коэффициент качества сжатия JPEG при создании эскизов изображений. От 0 (минимальное качество, минимальный размер файлов) до 100 (максимальное качество, максимальный размер файлов). Рекомендуемое значение — 90."
 
-msgid "Browse for new plugins"
-msgstr "Поиск плагинов"
-
-msgid "Use Installer to install new plugins from the Webasyst Store"
-msgstr "Устанавливайте плагины из магазина Webasyst с помощью приложения «Инсталлер»"
-
 msgid "Unselect all photos"
 msgstr "Отменить для всех фото"
 
@@ -925,14 +799,11 @@ msgstr "<a href=\"http://www.webasyst.ru/store/app/photos/\">Движок фот
 msgid "Welcome to your new photo gallery!"
 msgstr "Добро пожаловать в вашу новую фотогалерею!"
 
-msgid "Start by uploading photos in your <a href=\"%s\">gallery backend</a>."
-msgstr "Начните с загрузки фотографий в <a href=\"%s\">бекенде фотогалереи</a>."
-
 msgid "Start uploading photos by clicking the link above or by dragging selected photos anywhere on this page."
 msgstr "Загрузите фотографии, щелкнув по ссылке выше или перетащив фотографии из папки на вашем компьютере прямо на эту страницу."
 
-msgid "Create an album using the green icon above."
-msgstr "Создайте новый альбом с помощью иконки плюсика выше."
+msgid "Create an album using the plus icon above."
+msgstr "Создайте новый альбом с помощью иконки-плюсика выше."
 
 msgid "%d photo will be deleted without the ability to restore."
 msgid_plural "%d photos will be deleted without the ability to restore."

@@ -20,6 +20,8 @@ class installerAnnouncementList
      */
     const PLACE_PROMOTION = 'promotion';
 
+    const PLACE_FRONT = 'front';
+
     public function withFilteredByApp($app_id)
     {
         if ($app_id) {
@@ -87,14 +89,24 @@ class installerAnnouncementList
         return isset($list[self::PLACE_NOTIFICATION]) ? $list[self::PLACE_NOTIFICATION] : [];
     }
 
+    public function getFrontList()
+    {
+        $list = $this->getList();
+        return isset($list[self::PLACE_FRONT]) ? $list[self::PLACE_FRONT] : [];
+    }
+
     private function groupByPlace(array $list = [])
     {
         $result = [
             self::PLACE_HEADER_TOP => [],
             self::PLACE_NOTIFICATION => [],
             self::PLACE_PROMOTION => [],
+            self::PLACE_FRONT => [],
         ];
         foreach ($list as $key => $announcement) {
+            if(empty($announcement['html'])) {
+                $announcement['html'] = [self::PLACE_PROMOTION => ''];
+            }
 
             // grouping
             foreach ($result as $place => $_) {
@@ -120,7 +132,14 @@ class installerAnnouncementList
     {
         $announcements = [];
         foreach ($this->buildSelect($keys) as $row) {
-            $announcements[$row['name']] = $this->unserializeAnnouncement($row['value']);
+            $a = $this->unserializeAnnouncement($row['value']);
+            if (isset($a['expire'])) {
+                $expire = new DateTime($a['expire'], new DateTimeZone('UTC'));
+                if ($expire <= new DateTime()) {
+                    continue;
+                }
+            }
+            $announcements[$row['name']] = $a;
         }
 
         if (isset($this->filters['app_id'])) {
@@ -180,6 +199,8 @@ class installerAnnouncementList
             'app_id' => null
         ];
 
+        $row_value = $this->handleVariables($row_value);
+
         // default (protocol 1) variant case
         $data = array_merge($default_data, [
             'html' => [
@@ -194,8 +215,9 @@ class installerAnnouncementList
                 $data = array_merge($default_data, $json);
                 if (isset($data['html'])) {
                     if (is_scalar($data['html'])) {
+                        $html = $this->handleVariables($data['html']);
                         $data['html'] = [
-                            self::PLACE_HEADER_TOP => $data['html']
+                            self::PLACE_HEADER_TOP => $html
                         ];
                     }
                     if (!is_array($data['html'])) {
@@ -208,6 +230,23 @@ class installerAnnouncementList
         }
 
         return $data;
+    }
+
+    private function handleVariables($str)
+    {
+        $str = str_replace(
+            '%BACKEND_URL%',
+            wa()->getConfig()->getBackendUrl(true),
+            $str
+        );
+
+        $str = str_replace(
+            '%INSTALLER_URL%',
+            wa()->getConfig()->getBackendUrl(true) . 'installer/',
+            $str
+        );
+
+        return $str;
     }
 
     private function getFromCache($key, $loader)

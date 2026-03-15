@@ -1,11 +1,44 @@
 {$_capture_array = []}
 {strip}
 <div class="d-widgets-block">
+    <ul class="chips rounded dashboards-list js-dashboards-list custom-mr-8 custom-mb-32 custom-mt-16 desktop-and-tablet-only">
+        <li class="{if $selected_sidebar_item === 'my'} selected{/if}" data-header-title="[`My apps`]">
+            <a href="javascript:void(0)" data-dashboard="0">
+                <span class="semibold">[`My dashboard`]</span>
+            </a>
+        </li>
+        {foreach $public_dashboards as $d}
+            <li{if $selected_sidebar_item === "dashboard/`$d.id`"} class="selected"{/if} data-header-title="[`Everyone`]">
+                <a href="javascript:void(0)" data-dashboard="{$d.id}" title="{$d.name|escape}">
+                    <span class="semibold">{$d.name|escape|truncate:32}</span>
+                    <span class="js-loading hidden custom-mr-0 custom-ml-4 small"><i class="fas fa-spinner fa-spin" style="color:var(--text-color);"></i></span>
+                </a>
+            </li>
+        {/foreach}
+        {if !empty($is_admin)}
+            <li class="transparent" style="display: none;">
+                <a class="js-new-dashboard" href="javascript:void(0);" data-dashboard="new_dashboard" title="[`New dashboard`]">
+                    <i class="fas fa-plus text-gray custom-mr-4"></i>[`New dashboard`]
+                </a>
+            </li>
+        {/if}
+        {if !$wa->isMobile()}
+            <li class="transparent dashboard-customize">
+                <a href="javascript:void(0);"
+                   class="js-dashboard-edit"
+                   data-current_dashboard-id="{$selected_sidebar_item|default:0|regex_replace:'/[^0-9]/':''}"
+                   id="show-dashboard-editable-mode_" title="[s`Widgets`]">
+                    <i class="fas fa-sliders-h text-gray"></i>
+                </a>
+            </li>
+        {/if}
+    </ul>
+
     {* LOAD RESOURCES *}
     <script src="{$wa_url}wa-content/js/d3/d3.min.js"></script>
 
     <div class="empty-widgets-wrapper {if empty($widgets)}is-shown{/if}" id="empty-widgets-wrapper">
-        [`Your dashboard is empty. Add widgets by clicking “Edit widgets” button at the top.`]
+        <p>[`Your dashboard is empty. Add widgets by clicking “Edit widgets” button at the top.`]</p>
     </div>
 
     <div id="d-widgets-block">
@@ -69,14 +102,19 @@
     }
     .widget-drag {
        opacity: 1 !important;
-        background: rgba(0,0,0,0.06);
+       background: rgba(0,0,0,0.06);
         overflow: hidden;
+        border-radius: 1rem;
     }
     .widget-chosen:not(.widget-drag) {
         cursor: move;
     }
     .widget-drag .widget-controls-wrapper {
         display: none !important;
+    }
+
+    .sortable-fallback {
+        background: var(--background-color-blank)
     }
 
     @keyframes zoomIn {

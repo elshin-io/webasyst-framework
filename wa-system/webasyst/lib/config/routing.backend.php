@@ -18,12 +18,17 @@ return array(
     'settings/field/?'                          => 'settingsField',
     'settings/db/?'                             => 'settingsDatabase',
     'settings/waid/?'                           => 'settingsWaID',
+    'settings/ai/?'                             => 'settingsAi',
+    'settings/privacy/?'                        => 'settingsPrivacy',
     'settings/?'                                => 'settings/',
 
     'dashboard/apps/?'                          => 'dashboardApps',
     'dashboard/team/<id>/?'                     => 'dashboardUsers',
-    'dashboard/users/?'                      => 'dashboardUsers',
+    'dashboard/users/?'                         => 'dashboardUsers',
     'dashboard/dashboard/<id>/?'                => 'dashboardDashboard',
+    'announcements/?'                           => 'dashboardAnnouncements',
+    'announcements/ai/<action>/?'               => 'dashboardAnnouncementsAI',
+    'announcements/<action>/?'                  => 'dashboardAnnouncements',
 
     'repair'                                    => array(
         'url'    => 'repair/<action:(\w+)?>/?',

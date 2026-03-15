@@ -128,6 +128,10 @@ class waFrontController
 
     protected function executeWidget($action = null)
     {
+        // Old UI 1.3 is now disabled on dashboard
+        waRequest::setParam('check_app_info', 0);
+        waRequest::setParam('force_ui_version', '2.0');
+
         $widget = $this->system->getWidget(waRequest::get('id'));
         if (!$widget->isAllowed()) {
             throw new waException(_ws('You don’t have permissions to view this widget'), 403);
@@ -137,6 +141,9 @@ class waFrontController
             waSystem::pushActivePlugin($widget->getInfo('widget'), $app_id.'_widget');
         }
         $widget->loadLocale($app_id == 'webasyst');
+        if ($action === null) {
+            wa()->getStorage()->close();
+        }
         return $widget->run($action);
     }
 
@@ -217,6 +224,18 @@ class waFrontController
         // app prefix for class names
         $prefix = $this->system->getConfig()->getPrefix();
 
+        // Make sure plugin is enabled
+        if ($plugin && !$this->isPluginEnabled($plugin)) {
+            throw new waException(sprintf(
+                'Empty module and/or action after parsing the URL "%s" (%s/%s/%s/%s).',
+                $this->system->getConfig()->getCurrentUrl(),
+                $this->system->getConfig()->getApplication(),
+                $plugin,
+                $module,
+                $action
+            ), 404);
+        }
+
         //
         // Check possible ways to handle the request one by one
         //
@@ -252,6 +271,23 @@ class waFrontController
 
         // Too bad. 404.
         throw new waException(sprintf('Empty module and/or action after parsing the URL "%s" (%s/%s).<br />Not found classes: %s', $this->system->getConfig()->getCurrentUrl(), $module, $action,implode(', ',$class_names)), 404);
+    }
+
+    protected function isPluginEnabled($plugin)
+    {
+        $config = $this->system->getConfig();
+        $plugins_supported = $config->getInfo('plugins');
+        if (!$plugins_supported) {
+            return false;
+        }
+
+        $path = $config->getConfigPath('plugins.php', true);
+        if (!file_exists($path)) {
+            return false;
+        }
+
+        $plugins_config = include($path);
+        return !empty($plugins_config[$plugin]);
     }
 
     /**

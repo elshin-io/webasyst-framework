@@ -95,7 +95,7 @@ class waModel
             if (SystemConfig::isDebug()) {
                 $this->fields = $this->getFields();
             } else {
-                $cache = new waSystemCache('db/'.$this->type.'/'.$this->table, -1, 'webasyst');
+                $cache = new waSystemCache('db/'.$this->getMetadataCacheKey().'/'.$this->table, -1, 'webasyst');
                 if (!($this->fields = $cache->get())) {
                     $this->fields = $this->getFields();
                     $cache->set($this->fields);
@@ -114,23 +114,27 @@ class waModel
     public function clearMetadataCache()
     {
         $this->getMetadataCache()->delete();
-        $cache = new waSystemCache('db/'.$this->type.'/'.$this->table, -1, 'webasyst');
+        $cache = new waSystemCache('db/'.$this->getMetadataCacheKey().'/'.$this->table, -1, 'webasyst');
         $cache->delete();
         $this->fields = null;
         return $this->getMetadata();
     }
 
-    protected function getMetadataCache()
+    protected function getMetadataCacheKey()
     {
         if (is_scalar($this->type)) {
-            $key = $this->type;
+            return $this->type;
         } else {
             if (empty($this->type['metadata_cache_key'])) {
                 $this->type['metadata_cache_key'] = uniqid('m', true);
             }
-            $key = $this->type['metadata_cache_key'];
+            return $this->type['metadata_cache_key'];
         }
-        return new waRuntimeCache('db/'.$key.'/'.$this->table, -1, 'webasyst');
+    }
+
+    protected function getMetadataCache()
+    {
+        return new waRuntimeCache('db/'.$this->getMetadataCacheKey().'/'.$this->table, -1, 'webasyst');
     }
 
     /**
@@ -229,7 +233,7 @@ class waModel
      * Set cache
      * @param waiCache $cache
      */
-    public function setCache(waiCache $cache = null)
+    public function setCache(?waiCache $cache = null)
     {
         $this->cache = $cache;
     }
@@ -555,8 +559,8 @@ class waModel
                 // breakthrough
             case 'double':
             case 'float':
-                if (strpos($value, ',') !== false) {
-                    $value = str_replace(',', '.', $value);
+                if (strpos((string)$value, ',') !== false) {
+                    $value = str_replace(',', '.', (string)$value);
                 }
                 return str_replace(',', '.', (double) $value);
             case 'date':
@@ -680,7 +684,7 @@ class waModel
      *      'name=VALUES(name)'
      *);<pre>
      *
-     * @return resource|bool Returns true if there are no data to be inserted.
+     * @return waDbResultInsert|bool Returns true if there are no data to be inserted.
      * @throws waException
      */
     public function multipleInsert($data)
@@ -863,7 +867,17 @@ class waModel
      */
     public function countAll()
     {
-        return $this->query("SELECT COUNT(*) FROM ".$this->table)->fetchField();
+        return (int) $this->query("SELECT COUNT(*) FROM ".$this->table)->fetchField();
+    }
+
+    /**
+     * Returns whether this table is empty. This is faster than ->countAll()
+     * @return bool
+     * @since 3.0.0
+     */
+    public function isEmpty()
+    {
+        return !$this->query("SELECT 1 FROM ".$this->table." LIMIT 1")->fetchField();
     }
 
     /**
@@ -943,11 +957,15 @@ class waModel
      */
     public function getById($value)
     {
-        $all = !is_array($this->id) && is_array($value);
-        if (!is_array($this->id)) {
-            return $this->getByField($this->id, $value, $all ? $this->id : false);
+        if (is_array($this->id)) {
+            $value = $this->remapIds($value);
+            $all = (bool)array_filter($value, function($v) {
+                return is_array($v);
+            });
+            return $this->getByField($value, $all ? $this->id : false);
         } else {
-            return $this->getByField($this->remapIds($value), $all ? $this->id : false);
+            $all = is_array($value);
+            return $this->getByField($this->id, $value, $all ? $this->id : false);
         }
     }
 
@@ -1081,7 +1099,7 @@ class waModel
     {
         $sql = "SELECT COUNT(*) FROM ".$this->table;
         $sql .= " WHERE ".$this->getWhereByField($field, $value);
-        return $this->query($sql)->fetchField();
+        return (int)$this->query($sql)->fetchField();
     }
 
     /**
@@ -1141,7 +1159,7 @@ class waModel
     /**
      * Verifies whether specified field exists in model's table.
      *
-     * @param string $field Field name
+     * @param string|array{string, string} $field Field name or [table name, field name]
      * @return bool
      */
     public function fieldExists($field)
@@ -1278,6 +1296,13 @@ class waModel
         $table = $table !== null ? $table : $this->table;
         if (isset($schema[$table])) {
             $this->adapter->addColumn($table, $column, $schema[$table], $after_column);
+            if ($this->table && $table == $this->table) {
+                $this->clearMetadataCache();
+            } else {
+                $key = $this->getMetadataCacheKey();
+                (new waSystemCache('db/'.$key.'/'.$table, -1, 'webasyst'))->delete();
+                (new waRuntimeCache('db/'.$key.'/'.$table, -1, 'webasyst'))->delete();
+            }
         }
     }
 
@@ -1306,7 +1331,17 @@ class waModel
         $schema = $this->formatSchema($db_schema);
         $table = $table !== null ? $table : $this->table;
         if (isset($schema[$table])) {
-            return $this->adapter->modifyColumn($table, $column, $schema[$table], $after_column, $emulate);
+            $result = $this->adapter->modifyColumn($table, $column, $schema[$table], $after_column, $emulate);
+            if (!$emulate) {
+                if ($this->table && $table == $this->table) {
+                    $this->clearMetadataCache();
+                } else {
+                    $key = $this->getMetadataCacheKey();
+                    (new waSystemCache('db/'.$key.'/'.$table, -1, 'webasyst'))->delete();
+                    (new waRuntimeCache('db/'.$key.'/'.$table, -1, 'webasyst'))->delete();
+                }
+            }
+            return $result;
         }
     }
 

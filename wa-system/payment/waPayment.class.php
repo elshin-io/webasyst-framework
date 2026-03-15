@@ -105,13 +105,19 @@ abstract class waPayment extends waSystemPlugin
      * @var string
      */
     const OPERATION_REFUND = 'REFUND';
-
     /**
      *
      * Cancellation of unauthorized transaction
      * @var string
      */
     const OPERATION_CANCEL = 'CANCEL';
+    /**
+     *
+     * Cancellation of just initiated and not paid transaction
+     * @var string
+     * @since 4.0.0
+     */
+    const OPERATION_CANCEL_PENDING = 'CANCEL_PENDING';
     /**
      *
      * Payment status check by order ID
@@ -149,11 +155,13 @@ abstract class waPayment extends waSystemPlugin
      */
     const OPERATION_RECURRENT = 'RECURRENT';
 
+    const STATE_PENDING = 'PENDING';
     const STATE_CAPTURED = 'CAPTURED';
     const STATE_AUTH = 'AUTH';
     const STATE_REFUNDED = 'REFUNDED';
     const STATE_CANCELED = 'CANCELED';
     const STATE_PARTIAL_REFUNDED = 'PARTIAL_REFUNDED';
+    const STATE_PARTIAL_CANCELED = 'PARTIAL_CANCELED';
     const STATE_DECLINED = 'DECLINED';
     const STATE_VERIFIED = 'VERIFIED';
 
@@ -327,6 +335,7 @@ abstract class waPayment extends waSystemPlugin
             if (class_exists('waPaymentDebug')) {
                 waPaymentDebug::startDebugCallback();
             }
+            waAutoload::getInstance()->add(waPayment::getClasses());
             $module = static::factory($module_id);
             static::log($module_id, $log);
 
@@ -711,7 +720,7 @@ abstract class waPayment extends waSystemPlugin
     {
         $rec = '#'.self::getLogRequestId()."\n";
         $module_id = strtolower($module_id);
-        if (!preg_match('@^[a-z][a-z0-9]+$@', $module_id)) {
+        if (!preg_match('@^[a-z][a-z0-9_]+$@', $module_id)) {
             $rec .= 'Invalid module_id: '.$module_id."\n";
             $module_id = 'general';
         }
@@ -977,7 +986,7 @@ abstract class waPayment extends waSystemPlugin
      * @return array[string]['name']string Printable form name
      * @return array[string]['description']string Printable form description
      */
-    public function getPrintForms(waOrder $order = null)
+    public function getPrintForms(?waOrder $order = null)
     {
         return array();
     }
@@ -1017,7 +1026,7 @@ abstract class waPayment extends waSystemPlugin
         $default = array(
             'instance'            => & $this,
             'title_wrapper'       => '%s',
-            'description_wrapper' => '<br><span class="hint">%s</span>',
+            'description_wrapper' => '<p class="hint">%s</p>',
             'translate'           => array(&$this, '_w'),
             'readonly'            => true,
             'control_wrapper'     => '
@@ -1136,7 +1145,7 @@ abstract class waPayment extends waSystemPlugin
         $country_model = new waCountryModel();
         $country = $country_model->get($iso3code);
         if (!$country) {
-            throw new waException($this->_w("Unknown country: ").$iso3code);
+            throw new waException($this->_w("Unknown country:") . ' ' . $iso3code);
         }
         return strtoupper($country['iso2letter']);
     }
@@ -1150,7 +1159,7 @@ abstract class waPayment extends waSystemPlugin
     {
         $currency = waCurrency::getInfo($currency_code);
         if (!$currency) {
-            throw new waException($this->_w("Unknown currency: ").$currency_code);
+            throw new waException($this->_w("Unknown currency:") . ' ' . $currency_code);
         }
         return $currency['iso4217'];
     }
@@ -1173,8 +1182,9 @@ abstract class waPayment extends waSystemPlugin
                 waPayment::TRANSACTION_AUTH,
             );
         }
-
-        $expected_transaction_types = array_intersect($this->getSupportedTransactions(), (array)$expected_transaction_types);
+        $supported_transaction_types = $this->getSupportedTransactions();
+        $supported_transaction_types[] = waPayment::TRANSACTION_AUTH;
+        $expected_transaction_types = array_intersect($supported_transaction_types, (array)$expected_transaction_types);
 
         $map = array(
             waPayment::STATE_VERIFIED => waPayment::TRANSACTION_CONFIRM,
@@ -1296,6 +1306,12 @@ abstract class waPayment extends waSystemPlugin
      */
     public function isRefundAvailable($order_id)
     {
+        $strict = false;
+        $args = func_get_args();
+        if (count($args) > 1) {
+            $strict = array_pop($args);
+        }
+
         # if refund is supported by payment plugin
         if (($this->capture_transaction === null)
             && in_array(waPayment::TRANSACTION_REFUND, $this->getSupportedTransactions(), true)
@@ -1314,8 +1330,13 @@ abstract class waPayment extends waSystemPlugin
                 'order_id' => $order_id,
                 'plugin'   => $this->id,
                 'app_id'   => $this->app_id,
+                'merchant_id' => $this->merchant_id,
                 'state'    => array_merge($decline, $last),
             );
+
+            if (!$strict) {
+                unset($search['merchant_id']);
+            }
 
             if ($this->getProperties('partial_refund')) {
                 $search['state'][] = waPayment::STATE_PARTIAL_REFUNDED;
@@ -1324,7 +1345,7 @@ abstract class waPayment extends waSystemPlugin
 
             $unfiltered_transactions = self::getTransactionsByFields($search);
             foreach ($unfiltered_transactions as $_transaction_id => $_transaction) {
-                // Ignore any records whith empty native_id 
+                // Ignore any records with empty native_id
                 if (empty($_transaction['native_id'])) {
                     unset($unfiltered_transactions[$_transaction_id]);
                 }
@@ -1382,10 +1403,10 @@ abstract class waPayment extends waSystemPlugin
     /**
      * This is backwards-compatibility code to support apps and payment plugins written before v.2.2.1
      * Before then, payment plugins could only support one payment transaction per order.
-     * ALl records with the same wa_tranasction.order_id (and belonging to the same plugin instance)
+     * ALl records with the same wa_transaction.order_id (and belonging to the same plugin instance)
      * were considered as one big log of a single payment transaction.
      *
-     * Since 2.2.1, `wa_tranasction` table contains column `part_number`. Values of part_number
+     * Since 2.2.1, `wa_transaction` table contains column `part_number`. Values of part_number
      * distinguish between different unrelated transactions in the same order. Apps and plugins
      * that are aware of this column, can use it to retry a failed payment, or support
      * payment via several smaller transactions, etc. - which was not possible before.
@@ -1551,4 +1572,66 @@ interface waIPaymentCheck
      * @return mixed
      */
     public function check($order_data);
+}
+
+/** @since 3.0.0 */
+interface waIPaymentImage
+{
+    /**
+     * Allows payment by QR-code image like SBP in Russia.
+     * 
+     * Method must return array with keys:
+     * - image_url or image_data_url: URL to image. One of these keys must be present.
+     * - qr_payload: optional string, decoded QR-code data.
+     * - name: optional string, human-readable title, defaults to plugin name.
+     * - description: optional string, defaults to plugin description.
+     *
+     * @param waOrder $order_data
+     * @return array
+     */
+    public function image($order_data);
+}
+
+/** @since 3.1.0 */
+interface waIPaymentStatePolling
+{
+    /**
+     * Apps that support state polling for payment plugins will occasionally call this method
+     * (e.g. when user opens an order page or regularly with cron job).
+     * Plugin may use this to poll order state from API and emulate callback functionality
+     * to notify app that order has changed.
+     * @param waOrder $order_data
+     */
+    public function statePolling($order_data);
+}
+
+/** @since 4.0.0 */
+interface waIPaymentMultipleOptions
+{
+    /**
+     * Allows payment plugin to present multiple payment options to customer in case app supports this interface.
+     * 'payment_form_data' of each option will be available in payment() as the first argument $payment_form_data.
+     * 
+     * @example <pre>
+     * return [[
+     *     'name' => 'Visa/Mastercard',
+     *     'description' => '...',
+     *     'logo' => 'https://...',
+     *     'payment_form_data' => ['type' => 'card'],
+     * ], [
+     *     'name' => 'Apple PAY',
+     *     'description' => '...',
+     *     'logo' => 'https://...',
+     *     'payment_form_data' => ['type' => 'applepay'],
+     * ]];
+     * </pre>
+     */
+    public function paymentOptions($order_data): array;
+}
+
+/** @since 4.0.0 */
+interface waIPaymentCancelPending
+{
+    /** Cancel all pending payment attempts, making them impossible to finish. Useful for apps in case order amount has changed. */
+    public function cancelPending($order_data);
 }

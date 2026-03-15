@@ -60,7 +60,10 @@ class waWebasystIDWAAuth extends waWebasystIDAuthAdapter
         // redirect to provider auth page
         $request_url = $this->getHealthyRedirectUri();
         if (!$request_url) {
-            throw new waWebasystIDException(_w('Webasyst ID auth endpoint is not available'));
+            throw new waWebasystIDException(_ws('Webasyst ID authentication endpoint is not available'));
+        }
+        if ($this->getClientManager()->isBackendAuthForced()) {
+            $request_url .= '&waid_forced=1';
         }
         wa()->getResponse()->redirect($request_url);
     }
@@ -81,15 +84,6 @@ class waWebasystIDWAAuth extends waWebasystIDAuthAdapter
             $callback_url .= '&invite_token=' . $invite_auth;
         }
 
-        $referrer_url = $this->getReferrerUrl();
-        if ($referrer_url) {
-            if (!waUtils::isUrlSafeBase64Encoded($referrer_url)) {
-                $callback_url .= '&referrer_url=' . waUtils::urlSafeBase64Encode($referrer_url);
-            } else {
-                $callback_url .= '&referrer_url=' . $referrer_url;
-            }
-        }
-
         // all other get params leave as it is
 
         $ignore = ['provider', 'type', 'backend_auth', 'invite_token', 'referrer_url', 'code', 'state'];
@@ -99,7 +93,7 @@ class waWebasystIDWAAuth extends waWebasystIDAuthAdapter
                 $callback_url .= '&' . $key . '=' . urlencode($value);
             }
         }
-        
+
         return $callback_url;
     }
 
@@ -274,7 +268,7 @@ class waWebasystIDWAAuth extends waWebasystIDAuthAdapter
         if (empty($phone) || !(new waPhoneNumberValidator)->isValid($phone) || !wa()->getUser()->isAuth()) {
             return $auth_url;
         }
-        
+
         $this->savePhone($phone);
         return $auth_url . '&auth_type=onetime_password&2fa_phone=' . urlencode($phone);
     }

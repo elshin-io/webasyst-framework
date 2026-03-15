@@ -5,7 +5,7 @@
                     <div class="fields-group">
                         <div class="field" id="thumbnail-size">
                             <div class="name">
-                                [`Thumbnails to be created when photo is uploaded`]
+                                [`Image thumbnails created during photo upload`]
                             </div>
                             <div class="value">
                                 <ul>
@@ -40,8 +40,8 @@
                                                 </ul>
                                             </div>
                                         {/if}
-                                            <ul class="thumbnail-size-set bordered small js-thumbnail-size-set" style="display:none">
-                                                <li>
+                                            <ul class="thumbnail-size-set unstyled small custom-pl-12 js-thumbnail-size-set" style="display:none">
+                                                <li class="custom-py-4">
                                                     <label>
                                                         <span class="wa-radio">
                                                             <input type="radio" name="size_type[0]" value="max">
@@ -52,7 +52,7 @@
                                                     <input type="number" name="size[0]" value="" size="4" class="short" style="display:none;" disabled>[`px`]
 
                                                 </li>
-                                                <li>
+                                                <li class="custom-py-4">
                                                     <label class="s-label-with-check">
                                                         <span class="wa-radio">
                                                             <input type="radio" name="size_type[0]" value="width">
@@ -63,7 +63,7 @@
                                                     <input type="number" name="size[0]" value="" size="4" class="short" style="display:none;" disabled>[`px`], [`Height`] = <span class="gray">[`auto`]</span>
 
                                                 </li>
-                                                <li>
+                                                <li class="custom-py-4">
                                                     <label class="s-label-with-check">
                                                         <span class="wa-radio">
                                                             <input type="radio" name="size_type[0]" value="height">
@@ -73,7 +73,7 @@
                                                     </label>
                                                     <input type="number" name="size[0]" value="" size="4" class="short" style="display:none;" disabled>[`px`]
                                                 </li>
-                                                <li>
+                                                <li class="custom-py-4">
                                                     <label class="s-label-with-check">
                                                         <span class="wa-radio">
                                                             <input type="radio" name="size_type[0]" value="crop">
@@ -83,7 +83,7 @@
                                                     </label>
                                                     <input type="number" name="size[0]" value="" size="4" class="short" style="display:none;" disabled>[`px`]
                                                 </li>
-                                                <li>
+                                                <li class="custom-py-4">
                                                     <label>
                                                         <span class="wa-radio">
                                                             <input type="radio" name="size_type[0]" value="rectangle">
@@ -114,12 +114,10 @@
                             <div class="value">
                                 <ul>
                                     <li>
-                                        <label>
-                                            <span class="switch smaller middle" id="allow_gen_thumbs_on_demand">
-                                                <input type="checkbox" name="thumbs_on_demand" value="1" {if !empty($settings.thumbs_on_demand)}checked{/if}>
-                                            </span>
-                                        </label>
-                                        <p class="hint custom-mt-4">[`If enabled, frontend design theme can request Photos app to create custom-sized photo thumbnails on fly (any size in addition to the listed above, including cropped versions)`]</p>
+                                        <span class="switch smaller middle" id="allow_gen_thumbs_on_demand">
+                                            <input type="checkbox" name="thumbs_on_demand" value="1" {if !empty($settings.thumbs_on_demand)}checked{/if}>
+                                        </span>
+                                        <p class="hint custom-mt-4">[`If enabled, frontend design theme can request Photos app to create custom-sized photo thumbnails on the fly (the thumbnail size is contained in the image URL).`]</p>
                                     </li>
                                     <li id="max_available_size_control"{if !$settings.thumbs_on_demand} style="display:none;"{/if}>
                                         <span class="small">
@@ -127,7 +125,7 @@
                                             <input type="number" name="max_size" value="{$settings.max_size}" size="4" class="short">
                                             [`px`]
                                         </span>
-                                        <p class="hint">[`Limits the maximum thumbnail size that can be created on demand. Must not be less than 970 px.`]</p>
+                                        <p class="hint">[`Limits the maximum size of thumbnails which can be created on demand. Must not be less than 970 px.`]</p>
                                     </li>
                                 </ul>
                             </div>
@@ -140,11 +138,9 @@
                                 [`Sharpen`]
                             </div>
                             <div class="value">
-                                <label>
-                                    <span class="switch smaller middle" id="sharpen">
-                                        <input type="checkbox" name="sharpen" value="1" {if !empty($settings.sharpen)}checked{/if}>
-                                    </span>
-                                </label>
+                                <span class="switch smaller middle" id="sharpen">
+                                    <input type="checkbox" name="sharpen" value="1" {if !empty($settings.sharpen)}checked{/if}>
+                                </span>
                                 <p class="hint custom-mt-4">[`Apply sharpening filter when creating thumbnails (recommended)`]</p>
                             </div>
                         </div>
@@ -153,7 +149,7 @@
                                 [`Thumbnail quality`]
                             </div>
                             <div class="value">
-                                <input type="number" class="short" name="save_quality" value="{if !empty($settings.save_quality)}{str_replace(',', '.', $settings.save_quality)}{/if}">%
+                                <input type="number" class="short" name="save_quality" value="{if isset($settings.save_quality) && $settings.save_quality !== ''}{str_replace(',', '.', $settings.save_quality)}{/if}">%
                                 <p class="hint">[`JPEG compression quality for photo thumbnails. From 0 (min quality, min file size) to 100 (max quality, max file size). 90 is recommended.`]</p>
                             </div>
                         </div>
@@ -166,12 +162,10 @@
                                 [`Originals`]
                             </div>
                             <div class="value">
-                                <label>
-                                    <span class="switch smaller middle" id="save_original">
-                                        <input type="checkbox" name="save_original" value="1" {if !empty($settings.save_original)}checked{/if}>
-                                    </span>
-                                </label>
-                                <p class="hint">[`When enabled, every uploaded image file is automatically backed up and stored independently from photo full size version, which is modified when you edit it, e.g. rotate, apply watermarks or image visual effects. Originals are never updated. Pros: you have backups of all uploaded images. Cons: almost twice more disk space is required for storing original images than for storing only full size versions and thumbnails.`]</p>
+                                <span class="switch smaller middle" id="save_original">
+                                    <input type="checkbox" name="save_original" value="1" {if !empty($settings.save_original)}checked{/if}>
+                                </span>
+                                <p class="hint">[`When enabled, every uploaded image file is automatically backed up and stored independently of the photo's full-size version, which is modified when you edit it; e.g., rotate, apply watermarks or image visual effects. Original images are never updated. Pros: you have backups of all uploaded images. Cons: almost twice as much disk space is required to store original images in addition to full-size versions and thumbnails.`]</p>
                             </div>
                         </div>
                     </div>
@@ -183,11 +177,9 @@
                                 [`@2x image thumbnail generation`]
                             </div>
                             <div class="value">
-                                <label>
-                                    <span class="switch smaller middle" id="enable_2x">
-                                        <input type="checkbox" name="enable_2x" value="1" {if !empty($settings.enable_2x)}checked{/if}>
-                                    </span>
-                                </label>
+                                <span class="switch smaller middle" id="enable_2x">
+                                    <input type="checkbox" name="enable_2x" value="1" {if !empty($settings.enable_2x)}checked{/if}>
+                                </span>
                                 <p class="hint">[`Enabling this option will allow automatic creation of image thumbnails on-fly for devices with high pixel density displays, e.g. Retina displays. Generating bigger images require more memory resources for image generation, requires more disk space for storing images, but significantly improves user experience on devices with high-end displays`]</p>
                             </div>
                         </div>
@@ -196,7 +188,7 @@
                                 [`Thumbnail quality @2x`]
                             </div>
                             <div class="value">
-                                <input class="short small" type="number" name="save_quality_2x" value="{if !empty($settings.save_quality_2x)}{str_replace(',', '.', $settings.save_quality_2x)}{/if}">%
+                                <input class="short small" type="number" name="save_quality_2x" value="{if isset($settings.save_quality_2x) && $settings.save_quality_2x !== ''}{str_replace(',', '.', $settings.save_quality_2x)}{/if}">%
                                 <p class="hint">[`JPEG compression quality for photo thumbnails. From 0 (min quality, min file size) to 100 (max quality, max file size). 70 is recommended.`]</p>
                             </div>
                         </div>

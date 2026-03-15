@@ -15,7 +15,7 @@
                         const photo_id = $.photos.photo_stream_cache.getCurrent().id;
                         $.photos.addToAlbums({
                             photo_id: photo_id,
-                            album_id: d.find('form').serializeArray(),
+                            album_id: $dialog.find('form').serializeArray(),
                             copy: 0,
                             fn: function (r) {
                                 if (r.status !== 'ok') {
@@ -82,6 +82,7 @@
                         const id = $.photos.photo_stream_cache.getCurrent().id;
 
                         $.post('?module=stack&action=unmake&id=' + id, {}, function(response) {
+                            $.photos.is_from_list = false;
                             $.photos.goToHash($.photos.hash);
                         }, 'json');
 

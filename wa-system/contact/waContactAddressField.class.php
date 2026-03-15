@@ -59,10 +59,22 @@ class waContactAddressField extends waContactCompositeField
                     $tmp = trim($field->format($data['data'][$f_id], 'value', $data['data']));
                     if ($tmp) {
                         if (!in_array($f_id, array('country', 'region', 'zip', 'street', 'city'))) {
+                            if ($field instanceof waContactSelectField) {
+                                try {
+                                    $tmp = $field->getOptions($tmp);
+                                } catch (Exception $e) {
+                                    //
+                                }
+                            }
                             $tmp = $field->getName().' '.$tmp;
                         }
-                        $value[] = $tmp;
+                        $value[$f_id] = $tmp;
                     }
+                }
+            }
+            if ($format === 'short') {
+                if (count($value) > 1) {
+                    unset($value['country']);
                 }
             }
             $data['value'] = implode(", ", array_filter($value, 'strlen'));
@@ -99,19 +111,41 @@ class waContactAddressField extends waContactCompositeField
     {
         if (isset($value[0])) {
             foreach ($value as &$v) {
+                $v = $this->clearEmpty($v);
                 $v = $this->setGeoCoords($v);
             }
             unset($v);
         } else {
+            $value = $this->clearEmpty($value);
             $value = $this->setGeoCoords($value);
         }
         return parent::prepareSave($value, $contact);
+    }
+
+    protected function clearEmpty($value) {
+        if (!isset($value['data'])) {
+            return $value;
+        }
+
+        $nonempty_subfields = array_filter((array)$value['data']);
+        if (empty(array_diff(array_keys($nonempty_subfields), ['country', 'lng', 'lat']))) {
+            return [];
+        }
+        return $value;
     }
 }
 
 class waContactAddressForMapFormatter extends waContactFieldFormatter
 {
     public function format($data) {
+        /** @var waMapAdapter $map_adapter */
+        static $map_adapter = null;
+
+        if (empty($map_adapter)) {
+            $_adapter = (new waAppSettingsModel())->get('webasyst', 'backend_map_adapter', 'google');
+            $map_adapter = wa()->getMap($_adapter);
+        }
+
         $res = array(
             'with_street' => '',
             'without_street' => ''
@@ -174,6 +208,9 @@ class waContactAddressForMapFormatter extends waContactFieldFormatter
 
         if (!empty($data['data']['lat']) && !empty($data['data']['lng'])) {
             $res['coords'] = str_replace(',', '.', $data['data']['lat']) . ", " . str_replace(',', '.', $data['data']['lng']);
+            $res['map_url'] = $map_adapter->getUrlToMap($res['with_street'], $data['data']['lng'], $data['data']['lat'], 15);
+        } else {
+            $res['map_url'] = $map_adapter->getUrlToMap($res['with_street'], null, null, 15);
         }
 
         return $res;
@@ -260,6 +297,13 @@ class waContactAddressOneLineFormatter extends waContactFieldFormatter
                 }
                 $result['parts'][$id] = htmlspecialchars($result['parts'][$id]);
                 if (!in_array($id, array('country', 'region', 'zip', 'street', 'city'))) {
+                    if ($field instanceof waContactSelectField) {
+                        try {
+                            $result['parts'][$id] = $field->getOptions($result['parts'][$id]);
+                        } catch (Exception $e) {
+                            //
+                        }
+                    }
                     $result['parts'][$id] = '<span>'.$field->getName().'</span>' . ' ' . $result['parts'][$id];
                 }
             }

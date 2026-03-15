@@ -78,7 +78,7 @@ abstract class waMyProfileAction extends waViewAction
                 waContactFields::getStorage('waContactInfoStorage')->set($contact, array('photo' => $rand));
 
             } elseif (empty($data['photo'])) { // remove photo
-                $contact->set('photo', "");
+                $contact->set('photo', '0');
             }
 
             // just in case, may be some outer code user values array
@@ -133,7 +133,7 @@ abstract class waMyProfileAction extends waViewAction
             }
         }
         $errors = $contact->save();
-
+        
         // If something went wrong during save for any reason,
         // show it to user. In theory it shouldn't but better be safe.
         if ($errors) {
@@ -371,11 +371,13 @@ abstract class waMyProfileAction extends waViewAction
             if ($id === 'photo') {
                 return array(
                     'name' => _ws('Photo'),
+                    'type' => $field->getType(),
                     'value' => '<img src="'.$this->contact->getPhoto().'">',
                 );
             } else {
                 return array(
                     'name' => $field->getName(null, true),
+                    'type' => $field->getType(),
                     'value' => $this->contact->get($id, 'html'),
                 );
             }
@@ -388,4 +390,3 @@ abstract class waMyProfileAction extends waViewAction
         return parent::display(false);
     }
 }
-

@@ -41,14 +41,24 @@ class waSMS
         }
     }
 
-    public static function adapterExists($from = null)
+    public static function adapterExists($from = null, $do_filter_not_installed = false)
     {
         try {
             $sms = new self();
-            return !!$sms->getAdapter($from);
+            $adapter = $sms->getAdapter($from, $do_filter_not_installed);
+            return !empty($adapter) && $adapter->isConfigured();
         } catch (Exception $e) {
             return false;
         }
+    }
+
+    /** @since 3.8.2 */
+    public static function isConfigured()
+    {
+        if (self::$config) {
+            return true;
+        }
+        return !!self::getNoSettingsAdapter();
     }
 
     /**
@@ -56,20 +66,42 @@ class waSMS
      * @throws waException
      * @return waSMSAdapter
      */
-    protected function getAdapter($from = null)
+    protected function getAdapter($from = null, $do_filter_not_installed = false)
     {
+        $config = self::$config;
+        if (!empty($config)) {
+            $installed_adapters = self::getInstalledAdapterIds();
+            if (empty($installed_adapters)) {
+                throw new waException('No SMS adapters installed');
+            }
+            $config = array_filter($config, function ($adapter_config) use ($installed_adapters) {
+                return in_array($adapter_config['adapter'], $installed_adapters);
+            });
+            if ($do_filter_not_installed) {
+                self::$config = $config;
+            }
+        }
+        
+        if (empty($config)) {
+            $no_settings_adapter = self::getNoSettingsAdapter();
+            if ($no_settings_adapter) {
+                self::$config = empty(self::$config) ? [] : self::$config;
+                self::$config['*'] = [ 'adapter' => $no_settings_adapter ];
+                $path = wa()->getConfig()->getPath('config', 'sms');
+                waUtils::varExportToFile(self::$config, $path);
+            }
+        }
         if (!$from || (!isset(self::$config[$from]) && isset(self::$config['*']))) {
             $from = '*';
         }
         if (isset(self::$config[$from])) {
             $options = self::$config[$from];
-        } elseif ($from == '*') {
+        } elseif ($from == '*' && !empty(self::$config)) {
             $options = reset(self::$config);
             $from = key(self::$config);
         } else {
             throw new waException('SMS sender '.$from.' not configured.');
         }
-
         if ($from != '*' && !isset($options['from'])) {
             $options['from'] = $from;
         }
@@ -111,5 +143,31 @@ class waSMS
         }
 
         return $adapters;
+    }
+
+    protected static function getNoSettingsAdapter()
+    {
+        $path = wa()->getConfig()->getPath('plugins').'/sms/';
+        if (!file_exists($path)) {
+            return null;
+        }
+        $config_cache = waConfigCache::getInstance();
+        $dh = opendir($path);
+        $result = null;
+        while (($f = readdir($dh)) !== false) {
+            if ($f === '.' || $f === '..' || !is_dir($path.$f)) {
+                continue;
+            }
+            $config_file = $path.$f.'/lib/config/plugin.php';
+            if (file_exists($config_file)) {
+                $config = $config_cache->includeFile($config_file);
+                if (!empty($config['no_settings'])) {
+                    $result = $f;
+                    break;
+                }
+            }
+        }
+        closedir($dh);
+        return $result;
     }
 }

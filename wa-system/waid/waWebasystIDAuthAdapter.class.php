@@ -223,7 +223,27 @@ abstract class waWebasystIDAuthAdapter extends waOAuth2Adapter
      */
     public function getUrl()
     {
-        return wa()->getRootUrl(false, false).'oauth.php?provider='.$this->getId().'&type='.$this->getType();
+        $referrer_url = wa()->getConfig()->getCurrentUrl();
+        $referrer_url_encoded = waUtils::urlSafeBase64Encode($referrer_url);
+        return wa()->getRootUrl(false, false)
+            .'oauth.php?provider='.$this->getId()
+            .'&type='.$this->getType()
+            .'&referrer_url='.$referrer_url_encoded;
+    }
+
+    public function url()
+    {
+        return parent::url() . '&type='.$this->getType();
+    }
+
+    public function getUrlWithReferrer($url = null)
+    {
+        $referrer_url = $url ?: wa()->getConfig()->getCurrentUrl();
+        $referrer_url_encoded = waUtils::urlSafeBase64Encode($referrer_url);
+        return wa()->getRootUrl(false, false)
+            .'oauth.php?provider='.$this->getId()
+            .'&type='.$this->getType()
+            .'&referrer_url='.$referrer_url_encoded;
     }
 
     /**
@@ -434,7 +454,18 @@ abstract class waWebasystIDAuthAdapter extends waOAuth2Adapter
      */
     public function getCallbackUrl($absolute = true)
     {
-        return wa()->getRootUrl($absolute, true).'oauth.php?provider='.$this->getId().'&type='.$this->getType();
+        $callback_url = wa()->getRootUrl($absolute, true).'oauth.php?provider='.$this->getId().'&type='.$this->getType();
+
+        $referrer_url = $this->getReferrerUrl();
+        if ($referrer_url) {
+            if (!waUtils::isUrlSafeBase64Encoded($referrer_url)) {
+                $callback_url .= '&referrer_url=' . waUtils::urlSafeBase64Encode($referrer_url);
+            } else {
+                $callback_url .= '&referrer_url=' . $referrer_url;
+            }
+        }
+
+        return $callback_url;
     }
 
     protected function getUserInfo()
@@ -518,7 +549,7 @@ abstract class waWebasystIDAuthAdapter extends waOAuth2Adapter
         ];
 
         if (!$contact->exists()) {
-            $info['name'] = sprintf(_w('deleted contact %s'), $contact->getId());
+            $info['name'] = sprintf(_ws('deleted contact %s'), $contact->getId());
             return $info;
         }
 

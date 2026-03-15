@@ -126,7 +126,12 @@ class waFiles
     public static function move($source_path, $target_path)
     {
         self::create(dirname($target_path));
-        return rename($source_path, $target_path);
+        $result = @rename($source_path, $target_path);
+        if (!$result) {
+            /* Handle rename error between different disks */
+            $result = self::copy($source_path, $target_path) && self::delete($source_path);
+        }
+        return $result;
     }
 
     /**
@@ -272,6 +277,8 @@ class waFiles
                 return 'image/'.strtolower($type);
             case 'ico':
                 return 'image/x-icon';
+            case 'svg':
+                return 'image/svg+xml';
             case 'doc':
             case 'docx':
                 return 'application/msword';
@@ -334,6 +341,8 @@ class waFiles
                 return 'application/x-shockwave-flash';
             case 'eml':
                 return 'message/rfc822';
+            case 'webmanifest':
+                return 'application/manifest+json';
 
             default:
                 return 'application/octet-stream';
@@ -440,7 +449,6 @@ class waFiles
                 CURLOPT_TIMEOUT           => 10,
                 CURLOPT_CONNECTTIMEOUT    => 10,
                 CURLOPT_DNS_CACHE_TIMEOUT => 3600,
-                CURLOPT_BINARYTRANSFER    => true,
                 CURLOPT_WRITEFUNCTION     => array(__CLASS__, 'curlWriteHandler'),
             );
 
@@ -615,7 +623,7 @@ class waFiles
         $w = stream_get_wrappers();
         if (in_array($s, $w) && ini_get('allow_url_fopen')) {
             $context = self::getStreamContext($options);
-            if ($fp = @fopen($url, 'rb', null, $context)) {
+            if ($fp = @fopen($url, 'rb', false, $context)) {
                 try {
                     if (self::$fp = @fopen($path, 'wb')) {
                         self::$size = stream_copy_to_stream($fp, self::$fp);

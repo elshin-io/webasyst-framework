@@ -103,7 +103,7 @@ class waRequestFile
         if (@is_uploaded_file($this->data['tmp_name'])) {
             return @move_uploaded_file($this->data['tmp_name'], $this->concatFullPath($dir, $name));
         } else {
-            return @rename($this->data['tmp_name'], $this->concatFullPath($dir, $name));
+            return waFiles::move($this->data['tmp_name'], $this->concatFullPath($dir, $name));
         }
     }
 
@@ -122,7 +122,7 @@ class waRequestFile
     {
         switch($name) {
             case 'extension':
-                $path_info = pathinfo($this->data['name']);
+                $path_info = pathinfo((string) $this->data['name']);
                 return isset($path_info['extension']) ? $path_info['extension'] : '';
             default: // is it a key in $this->data?
                 if ($this->data === null) {

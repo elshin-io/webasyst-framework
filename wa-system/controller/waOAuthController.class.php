@@ -47,7 +47,7 @@ class waOAuthController extends waViewController
 
             $provider_id = $this->getAuthProviderId();
             if (!$provider_id) {
-                throw new waException('Unknown adapter ID');
+                throw new waException('Unknown adapter ID', 404);
             }
 
             $type = $this->getAuthType();
@@ -75,10 +75,10 @@ class waOAuthController extends waViewController
             //    from external resource and return here if all goes well.
             $auth_response_data = $auth->auth();
             if (!$auth_response_data) {
-                throw new waException('Unable to finish auth process.');
+                throw new waException('Unable to finish auth process.', 401);
             }
 
-            // Person identified. Now properly authorise them as local waContact,
+            // Person identified. Now properly authorize them as local waContact,
             // possibly creating new waContact from data provided.
             $result = $this->afterAuth($auth_response_data);
 
@@ -87,7 +87,7 @@ class waOAuthController extends waViewController
             $this->displayAuth($result);
         } catch (waWebasystIDAccessDeniedAuthException $e) {
             $this->cleanup();
-            // if webasyst ID server response 'access_denied' it means that user not allowed authorization, so not showing error (just finish proccess)
+            // if webasyst ID server response 'access_denied' it means that user not allowed authorization, so not showing error (just finish process)
             $this->displayAuth([]);
         } catch (waWebasystIDAuthException $e) {
             $this->cleanup();
@@ -138,7 +138,7 @@ class waOAuthController extends waViewController
     {
         $config = wa()->getAuthConfig();
         if (!isset($config['adapters'][$provider])) {
-            throw new waException('Unknown auth provider');
+            throw new waException('Unknown auth provider', 404);
         }
 
         return wa()->getAuth($provider, $config['adapters'][$provider]);
@@ -158,7 +158,7 @@ class waOAuthController extends waViewController
             'provider_id' => $provider_id,
             'result' => $result
         ];
-        
+
         $this->executeAction(new webasystOAuthAction($params));
     }
 

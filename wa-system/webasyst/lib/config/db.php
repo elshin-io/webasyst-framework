@@ -1,5 +1,84 @@
 <?php
 return array(
+    'wa_agreement_log' => array(
+        'id' => array('int', 11, 'null' => 0, 'autoincrement' => 1),
+        'create_datetime' => array('datetime', 'null' => 0),
+        'app_id' => array('varchar', 64, 'null' => 0),
+        'contact_id' => array('int', 11),
+        'ip' => array('varchar', 39),
+        'user_agent' => array('varchar', 255),
+        'context' => array('varchar', 64, 'null' => 0),
+        'document_name' => array('varchar', 64, 'null' => 0),
+        'document_id' => array('int', 11),
+        'accept_method' => array('varchar', 64),
+        'domain' => array('varchar', 64, 'null' => 0),
+        'form_url' => array('varchar', 255),
+        ':keys' => array(
+            'PRIMARY' => 'id',
+            'contact_id' => 'contact_id',
+            'app_id_context' => array('app_id', 'context'),
+        )
+    ),
+    'wa_agreement_document' => array(
+        'id' => array('int', 11, 'null' => 0, 'autoincrement' => 1),
+        'app_id' => array('varchar', 64, 'null' => 0),
+        'context' => array('varchar', 64, 'null' => 0),
+        'domain' => array('varchar', 64, 'null' => 0),
+        'locale' => array('varchar', 8, 'null' => 0),
+        'document_name' => array('varchar', 64, 'null' => 0),
+        'document_text' => array('text', 'null' => 0),
+        ':keys' => array(
+            'PRIMARY' => 'id',
+            'app_id_context_domain_document_locale' => array('app_id', 'context', 'domain', 'document_name', 'locale'),
+        )
+    ),
+    'wa_announcement' => array(
+        'id' => array('int', 11, 'null' => 0, 'autoincrement' => 1),
+        'app_id' => array('varchar', 32, 'null' => 0),
+        'type' => array('varchar', 32),
+        'contact_id' => array('int', 11),
+        'text' => array('text', 'null' => 0),
+        'data' => array('text'),
+        'datetime' => array('datetime', 'null' => 0),
+        'ttl_datetime' => array('datetime'),
+        'is_pinned' => array('tinyint', 4, 'null' => 0, 'default' => '0'),
+        'access' => array('enum', "'all','limited'", 'null' => 0, 'default' => 'all'),
+        ':keys' => array(
+            'PRIMARY' => 'id',
+            'app_datetime' => array('datetime', 'app_id'),
+        ),
+    ),
+    'wa_announcement_comments' => array(
+        'id' => array('int', 11, 'null' => 0, 'autoincrement' => 1),
+        'announcement_id' => array('int', 11, 'null' => 0),
+        'create_datetime' => array('datetime', 'null' => 0),
+        'update_datetime' => array('datetime'),
+        'contact_id' => array('int', 11, 'null' => 0),
+        'text' => array('text'),
+        ':keys' => array(
+            'PRIMARY' => 'id',
+            'announcement_datetime' => array('announcement_id', 'create_datetime'),
+        ),
+    ),
+    'wa_announcement_reactions' => array(
+        'id' => array('int', 11, 'null' => 0, 'autoincrement' => 1),
+        'announcement_id' => array('int', 11, 'null' => 0),
+        'create_datetime' => array('datetime', 'null' => 0),
+        'contact_id' => array('int', 11, 'null' => 0),
+        'reaction' => array('varchar', 1),
+        ':keys' => array(
+            'PRIMARY' => 'id',
+            'announcement_reaction_contact' => array('announcement_id', 'reaction', 'contact_id', 'unique' => 1),
+        ),
+    ),
+    'wa_announcement_rights' => array(
+        'group_id' => array('int', 11, 'null' => 0),
+        'announcement_id' => array('int', 11, 'null' => 0),
+        ':keys' => array(
+            'group_announcement' => array('group_id', 'announcement_id', 'unique' => 1),
+            'announcement_id' => 'announcement_id',
+        ),
+    ),
     'wa_api_auth_codes' => array(
         'code' => array('varchar', 32, 'null' => 0),
         'contact_id' => array('int', 11, 'null' => 0),
@@ -30,22 +109,13 @@ return array(
         'create_datetime' => array('datetime', 'null' => 0),
         'contact_id' => array('int', 11), // optional (eg. for frontend users)
         'subscriber_data' => array('text', 'null' => 0),
+        'scope' => array('varchar', 255, 'null' => 1),
         ':keys' => array(
             'PRIMARY' => 'id',
             'provider_id' => 'provider_id',
             'domain' => 'domain',
             'contact_id' => 'contact_id',
             'create_datetime' => 'create_datetime',
-        ),
-    ),
-    'wa_announcement' => array(
-        'id' => array('int', 11, 'null' => 0, 'autoincrement' => 1),
-        'app_id' => array('varchar', 32, 'null' => 0),
-        'text' => array('text', 'null' => 0),
-        'datetime' => array('datetime', 'null' => 0),
-        ':keys' => array(
-            'PRIMARY' => 'id',
-            'app_datetime' => array('datetime', 'app_id'),
         ),
     ),
     'wa_app_settings' => array(

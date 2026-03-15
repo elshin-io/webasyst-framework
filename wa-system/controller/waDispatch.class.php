@@ -23,7 +23,7 @@ class waDispatch
 
             $environment = $this->system->getEnv();
             if ($environment !== 'cli') {
-                if ($request_url === 'robots.txt' || $request_url === 'favicon.ico' || $request_url == 'apple-touch-icon.png') {
+                if ($request_url === 'robots.txt' || $request_url === 'favicon.ico' || $request_url == 'apple-touch-icon.png' || $request_url == 'site.webmanifest') {
                     $this->dispatchStatic($request_url);
                 }
             }
@@ -124,21 +124,32 @@ class waDispatch
             $app = 'webasyst';
         }
 
+        $is_xhr = waRequest::isXMLHttpRequest();
+        $single_app_mode_app_id = wa()->isSingleAppMode();
+
         if (!$this->system->appExists($app)) {
             if (wa('webasyst', 1)->event('backend_dispatch_miss', $app)) {
                 return;
             }
-            throw new waException("Page not found", 404);
+            if (!$is_xhr && $single_app_mode_app_id && $this->system->appExists($single_app_mode_app_id)) {
+                $this->system->getResponse()->redirect(wa()->getAppUrl($single_app_mode_app_id), 302);
+            } else {
+                throw new waException("Page not found", 404);
+            }
         }
 
         // heuristic: reset idle status, cause not ajax request (we suppose user voluntarily request page)
-        if (!waRequest::isXMLHttpRequest()) {
+        if (!$is_xhr) {
             (new waContactSettingsModel())->delete($this->system->getUser()->getId(), 'webasyst', 'idle_since');
         }
 
         // Make sure user has access to active app
         if ($app != 'webasyst' && !$this->system->getUser()->getRights($app, 'backend')) {
-            throw new waRightsException('Access to this app denied', 403);
+            if (!$is_xhr && $single_app_mode_app_id && $single_app_mode_app_id !== $app && $this->system->appExists($single_app_mode_app_id)) {
+                $this->system->getResponse()->redirect(wa()->getAppUrl($single_app_mode_app_id), 302);
+            } else {
+                throw new waRightsException('Access to this app denied', 403);
+            }
         }
 
         // Init system and app
@@ -287,6 +298,11 @@ class waDispatch
         // Run it through the routing, redirecting to backend if no routing is set up.
         $route_found = $this->system->getRouting()->dispatch();
         if (!$route_found) {
+            // Redirect to backend unless user deliberately changed backend URL.
+            // In this case do not disclose backend URL and show a regular 404.
+            if (waSystemConfig::systemOption('backend_url') !== 'webasyst') {
+                throw new waException("Page not found", 404);
+            }
             $this->system->getResponse()->redirect($this->config->getBackendUrl(true), 302);
             return;
         }
@@ -375,11 +391,20 @@ class waDispatch
             return;
         }
 
+        array_shift($argv);
         $params = array();
-        $app = $argv[1];
-        $slug = ifset($argv[2], 'help');
-        $class = $app.ucfirst($slug)."Cli";
-        $argv = array_slice($argv, 3);
+        $is_cron = false;
+        $app = trim((string)array_shift($argv));
+        if ($app == '--cron') {
+            $is_cron = true;
+            $app = trim((string)array_shift($argv));
+            if (empty($app)) {
+                // TODO: show help for --cron cli command
+                waLog::log(new waException("Invalid CRON CLI command"), 'cli.log');
+                return;
+            }
+        }
+        $slug = trim((string)array_shift($argv)) ?: 'help';
         while ($arg = array_shift($argv)) {
             if (mb_substr($arg, 0, 2) == '--') {
                 $key = mb_substr($arg, 2);
@@ -389,9 +414,10 @@ class waDispatch
                 $params[] = $arg;
                 continue;
             }
-            $params[$key] = trim(array_shift($argv));
+            $params[$key] = trim((string)array_shift($argv));
         }
         waRequest::setParam($params);
+
         // Load system
         waSystem::getInstance('webasyst');
 
@@ -399,8 +425,15 @@ class waDispatch
             throw new waException("App ".$app." not found", 404);
         }
 
+        if ($is_cron) {
+            (new waCronController($app, $slug, true))->execute();
+            return;
+        }
+
         // Load app
         waSystem::getInstance($app, null, true);
+
+        $class = $app.ucfirst($slug)."Cli";
         $class_exists = class_exists($class);
         $event_params = array(
             'app' => $app,
@@ -411,28 +444,22 @@ class waDispatch
 
         $successful_execution = false;
         if ($class_exists) {
-            $plugin_path = wa()->getConfig()->getPluginPath($slug).'/lib/config/plugin.php';
-            $run = true;
-            if (file_exists($plugin_path)) {
+            try {
+                /** @var $cli waCliController */
+                $cli = new $class();
+                $plugin_id = rtrim(str_replace('plugins/', '', $cli->getPluginRoot(), $count), '/');
                 $plugins = wa()->getConfig()->getPlugins();
-                if (!isset($plugins[$slug])) {
-                    $run = false;
-                    waLog::log(new waException("Plugin is disabled and class $class is not running"), 'cli.log');
+                if ($count && $plugin_id && !isset($plugins[$plugin_id])) {
+                    throw new waException("Plugin $plugin_id is disabled and class $class is not running");
                 }
-            }
-            if ($run) {
-                try {
-                    /** @var $cli waCliController */
-                    $cli = new $class();
-                    $cli->run();
-                    $successful_execution = true;
-                } catch (Exception $e) {
-                    $event_params['exception'] = $e;
-                    if (!$e instanceof waException) {
-                        $e = new waException($e);
-                    }
-                    waLog::log($e, 'cli.log');
+                $cli->run();
+                $successful_execution = true;
+            } catch (Exception $e) {
+                $event_params['exception'] = $e;
+                if (!$e instanceof waException) {
+                    $e = new waException($e);
                 }
+                waLog::log($e, 'cli.log');
             }
         } else {
             waLog::log(new waException("Class ".$class." not found"), 'cli.log');

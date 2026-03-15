@@ -45,7 +45,7 @@ class waWebasystIDClientManager
     {
         $credentials = $this->getAppSettingsModel()->get('webasyst', 'waid_credentials');
         $credentials = json_decode($credentials, true);
-        if (is_array($credentials) && isset($credentials['client_id']) && isset($credentials['client_secret'])) {
+        if (is_array($credentials) && isset($credentials['client_id']) && isset($credentials['client_secret']) && wa()->appExists('installer')) {
             return $credentials;
         }
         return null;
@@ -94,6 +94,10 @@ class waWebasystIDClientManager
      */
     public function connect()
     {
+        if (!wa()->appExists('installer')) {
+            throw new waException(_ws('The Installer app is required to use Webasyst ID.'));
+        }
+
         $options = [
             'timeout' => 30,
             'format' => waNet::FORMAT_JSON
@@ -112,19 +116,27 @@ class waWebasystIDClientManager
                 'method' => __METHOD__,
                 'debug' => $net->getResponseDebugInfo()
             ]);
-            return $this->packFailResult("fail_" . $e->getCode(), $e->getMessage());
+
+            $error_code = 'fail_' . $e->getCode();
+            $error_message = $e->getMessage();
+            $error_data = json_decode($error_message, true);
+            if (!empty($error_data)) {
+                $error_code = ifempty($error_data, 'errors', 'error', $error_code);
+                $error_message = ifempty($error_data, 'errors', $error_code, ifempty($error_data, 'errors', 'error_description', $error_message));
+            }
+            return $this->packFailResult($error_code, $error_message);
         }
 
         // No response from API
         if (!$response) {
-            return $this->packFailResult("unknown", _w("Unknown connect error"));
+            return $this->packFailResult("unknown", _ws("Unknown connection error"));
         }
 
         // Error from API
         if (!isset($response['status']) || $response['status'] === 'fail') {
             $errors = isset($response['errors']) && is_array($response['errors']) ? $response['errors'] : [];
             $error_code = "unknown";
-            $error_message = _w("Unknown connect error");
+            $error_message = _ws("Unknown connection error");
             if ($errors) {
                 $error_code = key($errors);
                 $error_message = $errors[$error_code];
@@ -148,7 +160,7 @@ class waWebasystIDClientManager
             'method' => __METHOD__,
             'debug' => $net->getResponseDebugInfo()
         ]);
-        return $this->packFailResult("unexpected", _w("Unexpected response from connect API"));
+        return $this->packFailResult("unexpected", _ws("Unexpected response from API"));
     }
 
     /**
@@ -185,7 +197,7 @@ class waWebasystIDClientManager
     public function disconnect()
     {
         if (!$this->isConnected()) {
-            return $this->packFailResult('not_connected', _w('Client not connected'));
+            return $this->packFailResult('not_connected', _ws('Client not connected'));
         }
 
         $options = [
@@ -220,14 +232,14 @@ class waWebasystIDClientManager
                 'method' => __METHOD__,
                 'debug' => $net->getResponseDebugInfo()
             ]);
-            return $this->packFailResult("unknown", _w("Unknown connect error"));
+            return $this->packFailResult("unknown", _ws("Unknown connection error"));
         }
 
         // Error from API
         if (!isset($response['status']) || $response['status'] === 'fail') {
             $errors = isset($response['errors']) && is_array($response['errors']) ? $response['errors'] : [];
             $error_code = "unknown";
-            $error_message = _w("Unknown connect error");
+            $error_message = _ws("Unknown connection error");
             if ($errors) {
                 $error_code = key($errors);
                 $error_message = $errors[$error_code];
@@ -260,10 +272,13 @@ class waWebasystIDClientManager
      * Get system (non user) access token
      * @return string
      */
-    public function getSystemAccessToken()
+    public function getSystemAccessToken($force_refresh = false)
     {
         $system_access_token = $this->getAppSettingsModel()->get('webasyst', 'waid_system_access_token');
-        if (!empty($system_access_token) && !(new waWebasystIDAccessTokenManager)->isTokenExpired($system_access_token)) {
+        if (!empty($system_access_token) &&
+            !(new waWebasystIDAccessTokenManager)->isTokenExpired($system_access_token) &&
+            !$force_refresh
+        ) {
             return $system_access_token;
         }
 
@@ -280,7 +295,7 @@ class waWebasystIDClientManager
         ];
 
         $net_options = [
-            'timeout' => 20,
+            'timeout' => waWebasystIDApi::TIMEOUT,
             'format' => waNet::FORMAT_RAW,
             'request_format' => waNet::FORMAT_RAW,
             'expected_http_code' => null,
@@ -316,6 +331,10 @@ class waWebasystIDClientManager
         $response = json_decode($response, true);
         if (!$response || !is_array($response)) {
             return false;
+        }
+
+        if ($status === 401 && ifset($response, 'error', '') === 'invalid_client') {
+            throw new waWebasystIDApiAuthException(_ws('Invalid Webasyst ID client credentials.'));
         }
 
         if (isset($response['error'])) {

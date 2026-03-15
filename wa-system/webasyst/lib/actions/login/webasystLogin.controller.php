@@ -18,13 +18,13 @@ class webasystLoginController extends waViewController
         }
 
         // There is no contacts yet - first login action
-        if (!$contact_model->countAll()) {
+        if ($contact_model->isEmpty()) {
             $this->executeAction(new webasystLoginFirstAction());
             return;
         }
 
         $webasyst_id_forced_auth = false;
-        // Check for Webasyst ID oauth only for non AJAX requests & not forced stamdard login form
+        // Check for Webasyst ID oauth only for non AJAX requests & not forced standard login form
         if (!waRequest::isXMLHttpRequest() && empty(waRequest::request('wa_json_mode')) && empty(waRequest::get('force_login_form'))) {
             $cm = new waWebasystIDClientManager();
             try {

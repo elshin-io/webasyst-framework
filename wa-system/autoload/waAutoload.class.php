@@ -23,7 +23,11 @@ class waAutoload
 
     protected function __construct()
     {
-        $this->base_path = realpath(dirname(__FILE__).'/../..');
+        if (defined('WA_AUTOLOAD_BASE_PATH')) {
+            $this->base_path = realpath(WA_AUTOLOAD_BASE_PATH);
+        } else {
+            $this->base_path = realpath(dirname(__FILE__).'/../..');
+        }
 
         // load system classes
         if (!isset(self::$static_cache['system_classes'])) {
@@ -162,6 +166,18 @@ class waAutoload
         return null;
     }
 
+    /**
+     * Add a class or many classes to autoloader.
+     *
+     * With one argument (array [ class => path ]) will add many classes, **skipping** classes already added before.
+     *
+     * With two arguments (string, string) will add a single class, **overwriting** path if a class was already added before.
+     * This allows to force overwrite any app class with custom code.
+     *
+     * @param string|array $class
+     * @param string $path
+     * @return void
+     */
     public function add($class, $path = null)
     {
         if (is_array($class)) {

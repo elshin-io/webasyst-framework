@@ -90,7 +90,7 @@ class waPHPCaptcha extends waAbstractCaptcha
                 $code = wa()->getRequest()->post('captcha');
             }
         }
-        $code = strtolower(trim($code));
+        $code = strtolower(trim((string) $code));
         $captcha = wa()->getStorage()->get('captcha');
         $app_id = $this->getAppId();
         if (isset($captcha[$app_id]) && $captcha[$app_id] === $code) {
@@ -130,7 +130,7 @@ class waPHPCaptcha extends waAbstractCaptcha
         }
 
         $array_mix = preg_split('//', $str, -1, PREG_SPLIT_NO_EMPTY);
-        srand ((float)microtime()*1000000);
+        srand((int)((float)microtime()*1000000));
         shuffle ($array_mix);
         return implode("", $array_mix);
     }

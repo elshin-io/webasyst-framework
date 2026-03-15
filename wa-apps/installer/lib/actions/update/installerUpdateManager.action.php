@@ -27,7 +27,7 @@ class installerUpdateManagerAction extends waViewAction
         $this->is_install = (bool)waRequest::request('install', false);
         $this->is_trial = (bool)waRequest::request('trial', false);
         $url = parse_url($r = waRequest::server('HTTP_REFERER', ''), PHP_URL_QUERY);
-        if (preg_match('/(^|&)module=(update|apps|plugins|widgets)($|&)/', $url, $matches)) {
+        if (is_string($url) && preg_match('/(^|&)module=(update|apps|plugins|widgets)($|&)/', $url, $matches)) {
             $this->module = $matches[2];
         }
 
@@ -38,10 +38,7 @@ class installerUpdateManagerAction extends waViewAction
                 $msg = _w('Unable to update the product (developer mode is on).');
             }
             $msg .= "\n"._w("A .git or .svn directory has been detected. To ignore the developer mode, add option 'installer_in_developer_mode' => true to wa-config/config.php file.");
-            $this->redirect(array(
-                'module' => $this->module,
-                'msg'    => installerMessage::getInstance()->raiseMessage($msg, 'fail'),
-            ));
+            return $this->signalFailMessage($msg, 'dev_mode_is_on');
         }
     }
 
@@ -171,21 +168,39 @@ class installerUpdateManagerAction extends waViewAction
 
                 if (!$queue_apps) {
                     $updater->flush();
-                    throw new waException(_w('Please select items for update'));
+                    return $this->errorNothingToUpdate();
                 }
 
-                if (!waRequest::get('_')) {
-                    $this->setLayout(new installerBackendStoreLayout());
-                    $this->getLayout()->assign('no_ajax', true);
-                }
+                $this->ensureLayout();
 
-                $this->view->assign('action', 'update');
-                $this->view->assign('queue_apps', $queue_apps);
-                $this->view->assign('count_installer_dependencies', $count_installer_dependencies);
-                $this->view->assign('install', !empty($this->is_install) ? 'install' : '');
-                $this->view->assign('trial', !empty($this->is_trial) ? 'trial' : '');
-                $this->view->assign('title', _w('Updates'));
-                $this->view->assign('thread_id', $state['thread_id']);
+                $this->view->assign([
+                    'action' => 'update',
+                    'queue_apps' => $queue_apps,
+                    'count_installer_dependencies' => $count_installer_dependencies,
+                    'install' => !empty($this->is_install) ? 'install' : '',
+                    'trial' => !empty($this->is_trial) ? 'trial' : '',
+                    'title' => _w('Updates'),
+                    'thread_id' => $state['thread_id'],
+                    'update_execute_params' => [
+                        'thread_id' => $state['thread_id'],
+                        'mode' => 'raw',
+                        'install' => !empty($this->is_install) ? 1 : 0,
+                        'trial' => !empty($this->is_trial) ? 1 : 0,
+
+                        /*'app_id' => array_map(function($target, $item) {
+                            return [
+                                'subject' => ifset($item, 'subject', 'app'),
+                                'slug' => $target,
+                                'vendor' => $item['vendor'],
+                                'edition' => ifset($item, 'edition', '',
+                                'id' => ifset($item, 'id', ''),
+                            ];
+                        }, array_keys($queue_apps), array_values($queue_apps)),*/
+                    ],
+                    'update_state_params' => [
+                        'mode' => 'raw',
+                    ],
+                ]);
 
                 $return_url = waRequest::post('return_url', null, waRequest::TYPE_STRING_TRIM);
                 if (empty($return_url) && waRequest::post('additional_updates', 0, waRequest::TYPE_INT)) {
@@ -198,16 +213,10 @@ class installerUpdateManagerAction extends waViewAction
 
             } else {
                 $msg = _w('Update is already in progress. Please wait while the current update session is completed before starting a new session.');
-                $this->redirect(array(
-                    'module' => $this->module,
-                    'msg'    => installerMessage::getInstance()->raiseMessage($msg, installerMessage::R_FAIL),
-                ));
+                return $this->signalFailMessage($msg, 'update_in_progress');
             }
         } catch (Exception $ex) {
-            $this->redirect(array(
-                'module' => $this->module,
-                'msg'    => installerMessage::getInstance()->raiseMessage($ex->getMessage(), installerMessage::R_FAIL),
-            ));
+            return $this->signalFailMessage($ex->getMessage(), $ex->getCode());
         }
     }
 
@@ -265,6 +274,28 @@ class installerUpdateManagerAction extends waViewAction
                 'subject'   => empty($info['subject']) ? 'system' : $info['subject'],
                 'edition'   => empty($info['edition']) ? true : $info['edition'],
             ));
+        }
+    }
+
+    // Overriden in installerUpdateManagerDialogAction
+    protected function signalFailMessage($msg, $msg_code = null)
+    {
+        $this->redirect(array(
+            'module' => $this->module,
+            'msg'    => installerMessage::getInstance()->raiseMessage($msg, installerMessage::R_FAIL),
+        ));
+    }
+
+    protected function errorNothingToUpdate()
+    {
+        throw new waException(_w('Please select items for update'));
+    }
+
+    protected function ensureLayout()
+    {
+        if (!waRequest::get('_')) {
+            $this->setLayout(new installerBackendStoreLayout());
+            $this->getLayout()->assign('no_ajax', true);
         }
     }
 }

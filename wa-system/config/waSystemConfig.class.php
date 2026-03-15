@@ -246,6 +246,9 @@ class waSystemConfig
             if (!empty(self::$system_options['cache_versioning'])) {
                 $this->enableCacheVersioning();
             }
+            if (!isset(self::$system_options['ui_disallow_legacy']) && empty(self::$system_options['ui'])) {
+                self::$system_options['ui_disallow_legacy'] = true;
+            }
         }
     }
 
@@ -327,9 +330,9 @@ class waSystemConfig
     public function getAppsPath($app, $path = null)
     {
         if ($app == 'webasyst') {
-            return $this->getRootPath().DIRECTORY_SEPARATOR.'wa-system'.DIRECTORY_SEPARATOR.$app.($path ? DIRECTORY_SEPARATOR.$path : '');
+            return waConfig::get('wa_path_system').DIRECTORY_SEPARATOR.$app.($path ? DIRECTORY_SEPARATOR.$path : '');
         } else {
-            return $this->getRootPath().DIRECTORY_SEPARATOR.'wa-apps'.DIRECTORY_SEPARATOR.$app.($path ? DIRECTORY_SEPARATOR.$path : '');
+            return waConfig::get('wa_path_apps').DIRECTORY_SEPARATOR.$app.($path ? DIRECTORY_SEPARATOR.$path : '');
         }
     }
 
@@ -497,14 +500,16 @@ class waSystemConfig
         }
 
         if ($application === 'webasyst') {
-            require_once($root_path.'/wa-system/webasyst/lib/config/webasystConfig.class.php');
+            require_once( waConfig::get('wa_path_system').'/webasyst/lib/config/webasystConfig.class.php');
             return new webasystConfig($environment, $root_path);
         }
 
-        if (file_exists($file = $root_path.'/wa-apps/'.$application.'/lib/config/'.$class_name.'.class.php')) {
-            require_once($file);
+        if (file_exists($file = waConfig::get('wa_path_apps').'/'.$application.'/lib/config/'.$class_name.'.class.php')) {
+            if (!class_exists($class_name)) {
+                require_once($file);
+            }
             return new $class_name($environment, $root_path, $application, $locale);
-        } elseif (file_exists($file = $root_path.'/wa-apps/'.$application.'/lib/config/app.php')) {
+        } elseif (file_exists($file = waConfig::get('wa_path_apps').'/'.$application.'/lib/config/app.php')) {
             return new waAppConfig($environment, $root_path, $application, $locale);
         } else {
             throw new waException(sprintf('Application "%s" does not exist.', $application));
@@ -644,7 +649,7 @@ class waSystemConfig
     {
         $default_system_ui = waSystemConfig::systemOption('ui');
         if (!$default_system_ui) {
-            $default_system_ui = '1.3';
+            $default_system_ui = waSystemConfig::systemOption('ui_disallow_legacy') ? '2.0' : '1.3';
         }
         $default_system_ui = $default_system_ui === '2.0' ? '2.0' : '1.3';
 

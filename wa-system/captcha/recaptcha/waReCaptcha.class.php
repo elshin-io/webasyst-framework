@@ -68,7 +68,7 @@ class waReCaptcha extends waAbstractCaptcha
         $options = array(
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => http_build_query(array(
-                'secret' => $this->options['secret'],
+                'secret' => ifset($this->options, 'secret', ''),
                 'response' => $code,
                 'remoteip' => waRequest::getIp(),
             )),
@@ -111,6 +111,11 @@ class waReCaptcha extends waAbstractCaptcha
             }
         }
         return false;
+    }
+
+    public function isInvisible()
+    {
+        return boolval(ifset($this->options['invisible'], false));
     }
 
     public function display()

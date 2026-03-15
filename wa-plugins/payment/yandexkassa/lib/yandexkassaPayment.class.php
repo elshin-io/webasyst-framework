@@ -333,6 +333,7 @@ class yandexkassaPayment extends waPayment implements waIPayment, waIPaymentCanc
                 'app_id'      => $this->app_id,
                 'merchant_id' => $this->merchant_id,
                 'order_id'    => $order->id,
+                'cms_name'    => 'webasyst',
             ),
         );
 
@@ -921,14 +922,13 @@ class yandexkassaPayment extends waPayment implements waIPayment, waIPaymentCanc
         $receipt_items = [];
 
         foreach ($order->items as $item) {
-            $quantity = (int)ifset($item, 'quantity', 0);
+            $quantity = ifset($item, 'quantity', 0);
             if ($quantity <= 0) {
                 continue;
             }
             $item['amount'] = round($item['price'], 2) - round(ifset($item['discount'], 0.0), 2);
 
-            // possible splitting items into array of items
-            $items = [$item];
+            $items = [];
 
             // "Честный знак" marking code for product item leads to splitting by 'quantity'
             if ($item['type'] === 'product') {
@@ -942,8 +942,12 @@ class yandexkassaPayment extends waPayment implements waIPayment, waIPaymentCanc
                 }
             }
 
-            foreach ($items as $it) {
-                $receipt_items[] = $this->formatReceiptItem($it, $order->currency);
+            if ($items) {
+                foreach ($items as $it) {
+                    $receipt_items[] = $this->formatReceiptItem($it, $order->currency);
+                }
+            } else {
+                $receipt_items[] = $this->formatReceiptItem($item, $order->currency);
             }
 
             unset($item);
@@ -1084,6 +1088,33 @@ class yandexkassaPayment extends waPayment implements waIPayment, waIPaymentCanc
                         } else {
                             #  5 — НДС чека по расчетной ставке 10/110;
                             $id = 5;
+                        }
+                        break;
+                    case 7:
+                        if ($tax_included) {
+                            # 8 — 7% VAT rate
+                            $id = 8;
+                        } else {
+                            # 10 — 7/107 estimate VAT rate
+                            $id = 10;
+                        }
+                        break;
+                    case 5:
+                        if ($tax_included) {
+                            # 7 — 5% VAT rate
+                            $id = 7;
+                        } else {
+                            # 9 — 5/105 estimate VAT rate
+                            $id = 9;
+                        }
+                        break;
+                    case 22:
+                        if ($tax_included) {
+                            # 11 — 22% VAT rate
+                            $id = 11;
+                        } else {
+                            # 12 — 22/122 estimate VAT rate
+                            $id = 12;
                         }
                         break;
                     case 0:
@@ -1559,7 +1590,7 @@ class yandexkassaPayment extends waPayment implements waIPayment, waIPaymentCanc
             ),
             'tinkoff_bank'   => array(
                 'value'     => 'tinkoff_bank',
-                'title'     => 'Тинькофф Банк',
+                'title'     => 'Т-Касса',
                 'ttl'       => '1 час',
                 'hold'      => '6 часов',
                 'code'      => 'TB',

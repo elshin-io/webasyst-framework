@@ -226,9 +226,13 @@ class WASettingsEmail {
         //
         that.initChangeTransport();
         //
+        that.initWasenderCheck();
+        //
         that.initDkim();
         //
         that.initAddRemoveItem();
+        //
+        that.initMakeDefault();
         //
         that.initSubmit();
     }
@@ -241,10 +245,69 @@ class WASettingsEmail {
                 transport = $item.find(that.transport_class).val();
 
             $item.find('.js-params').hide(); // Hide all params
-            $item.find('.js-transport-description').css('display', 'none'); // Hide all descriptions
-            $item.find('.js-'+ transport +'-description').css('display', 'inline-block'); // Show needed description
+            $item.find('.js-transport-description').hide(); // Hide all descriptions
+            $item.find('.js-'+ transport +'-description').show(); // Show needed description
             $item.find('.js-'+ transport +'-params').show(); // Show needed params
+            if (transport === 'wasender') {
+                $item.find('.js-dkim-field').hide();
+                $('.js-wasender-alert-description').hide();
+            } else {
+                $item.find('.js-dkim-field').show();
+                $('.js-wasender-alert-description').show();
+            }
         });
+    }
+
+    initWasenderCheck() {
+        const that = this;
+        let timeout_id = undefined;
+
+        that.$wrapper.on('change', that.transport_class, function () {
+            $(this).parents(that.item_class).each(loadCheck);
+        });
+
+        that.$wrapper.on('input', '#config-sender', function () {
+            clearTimeout(timeout_id);
+            const $item = $(this).parents('.js-config-sender-wrapper').find(that.item_class);
+            timeout_id = setTimeout(() => {
+                $item.each(loadCheck);
+            }, 2000);
+        });
+
+        that.$wrapper.on('input', that.key_class, function () {
+            clearTimeout(timeout_id);
+            const $item = $(this).parents(that.item_class);
+            timeout_id = setTimeout(() => {
+                $item.each(loadCheck);
+            }, 2000);
+        });
+
+        that.$wrapper.find(that.item_class).each(loadCheck);
+
+        function loadCheck() {
+            const $item = $(this);
+            const transport = $item.find(that.transport_class).val();
+            const $validation_content = $item.find('.js-wasender-validation-content');
+            if (transport !== 'wasender') {
+                $validation_content.html('');
+                return;
+            }
+
+            let $sender_field = $item.find(that.key_class);
+            if ($sender_field.hasClass('js-default-key')) {
+                $sender_field = $('#config-sender');
+            }
+            let sender = $sender_field.val();
+            if (sender) {
+                if (sender.indexOf('@') === -1) {
+                    sender = 'any@' + sender;
+                }
+                $validation_content.html('<div class="small"><i class="fas fa-spinner fa-spin loading"></i> ' + that.locales.checking + '</div>');
+                $validation_content.load('?module=settingsWasenderValidate&sender=' + sender);
+            } else {
+                $validation_content.html('');
+            }
+        }
     }
 
     initDkim() {
@@ -374,6 +437,22 @@ class WASettingsEmail {
         }
     }
 
+    initMakeDefault() {
+        let that = this;
+
+        that.$wrapper.on('click', '.js-make-default', function (e) {
+            e.preventDefault();
+            if (that.is_locked) {
+                return;
+            }
+
+            let $item = $(this).closest(that.item_class);
+            $.post('?module=settingsEmail&action=makeDefault', { key: $(this).data('key') }, function(r) {
+                location.reload();
+            }, 'json');
+        });
+    }
+
     initAddRemoveItem () {
         let that = this;
 
@@ -423,19 +502,23 @@ class WASettingsEmail {
 
             that.is_locked = true;
             that.$button.prop('disabled', true);
-            that.$loading.removeClass('yes').addClass('loading').show();
+
+            var $button_text = that.$button.text(),
+                $loader_icon = ' <i class="fas fa-spinner fa-spin"></i>',
+                $success_icon = ' <i class="fas fa-check-circle"></i>';
+            that.$button.empty().html($button_text + $loader_icon);
 
             let href = that.$form.attr('action'),
                 data = that.$form.serialize();
 
             $.post(href, data, function (res) {
                 if (res.status === 'ok') {
-                    that.$button.removeClass('yellow');
-                    that.$loading.removeClass('loading').addClass('yes');
+                    that.$button.empty().html($button_text + $success_icon).removeClass('yellow');
                     that.$footer_actions.removeClass('is-changed');
                     setTimeout(function(){
-                        that.$loading.hide();
-                    }, 2000);
+                        that.$button.empty().html($button_text);
+                    },2000);
+                    that.$form.trigger('wa_settings_email_saved');
                 } else if (res.errors) {
                     $.each(res.errors, function (i, error) {
                         if (error.field) {
@@ -536,7 +619,7 @@ class WASettingsEmailTemplate {
         //
         let $sidebar = $('#js-sidebar-wrapper');
         $sidebar.find('ul li').removeClass('selected');
-        $sidebar.find('[data-id="email-template"]').addClass('selected');
+        $sidebar.find('[data-id="email"]').addClass('selected');
 
         if (that.$template_text.length) {
             that.initAce();

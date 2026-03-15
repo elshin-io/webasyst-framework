@@ -124,6 +124,7 @@ class waTheme implements ArrayAccess
      */
     public function __construct($id, $app_id = true, $force = false, $readonly = false)
     {
+        $id = (string) $id;
         $this->readonly = $readonly;
         if (strpos($id, ':') !== false) {
             list($app_id, $id) = explode(':', $id, 2);
@@ -342,6 +343,7 @@ class waTheme implements ArrayAccess
                             );
                             if ($s['control_type'] === 'group_divider') {
                                 $settings_group = $s['value'];
+                                $s['icon_class'] = isset($setting['icon_class']) ? (string)$setting['icon_class'] : 'fas fa-sliders-h';
                             }
                             if ($var === '') {
                                 if ($s['control_type'] === 'group_divider') {
@@ -1671,7 +1673,7 @@ HTACCESS;
 
     public function getVendor()
     {
-        return $this->init('vendor') ? $this->info['vendor'] : 'unknow';
+        return $this->init('vendor') ? $this->info['vendor'] : 'unknown';
     }
 
     public function setDescription($name)
@@ -2563,6 +2565,7 @@ HTACCESS;
                     }
                 }
 
+                // There not need use wa_path_apps
 
                 $wa_path = "wa-apps/{$app_id}/themes/{$id}";
                 $wa_pattern = wa_make_pattern($wa_path, '@');

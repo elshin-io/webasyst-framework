@@ -28,14 +28,14 @@
     <div class="field">
         <div class="name">{$obj->_w('Parcel office city')}</div>
         <div class="value">
-            <input class="ui-autocomplete-input js-boxberry-targetstart-autocomplete" autocomplete="off" value="{$points_by_settings['city']}"
+            <input type="text" class="ui-autocomplete-input js-boxberry-targetstart-autocomplete" autocomplete="off" value="{$points_by_settings['city']}"
                    placeholder="{$obj->_w('Start typing a city name')}" {if !$token}style="display: none"{/if}>
             <span class="s-js-boxberry-targetstart-start-message">
                 {$obj->_w('To select a parcel office, please enter a token and save the settings.')}
             </span>
             <br>
             <span class="errormsg s-js-boxberry-targetstart-autocomplete">
-                {$obj->_w('There are no parcel offices in your city.')}
+                {if !empty($errors)}{$errors|escape}{else}{$obj->_w('There are no parcel offices in your city.')}{/if}
             </span>
         </div>
     </div>
@@ -126,6 +126,17 @@
             <input name="{$namespace}[default_weight]" type="text" value="{$settings.default_weight|default:''|escape}" data-dimension="weight">
             <span>{$obj->_w('g')}</span>
             <div class="js-error-default-weight dimension-error" style="display: none">{$obj->_w('Must be greater than 4 g and must not exceed the maximum weight value.')}</div>
+        </div>
+    </div>
+    <div class="field">
+        <div class="name">{$obj->_w('Disable the plugin in case of errors on the Boxberry server')}</div>
+        <div class="value">
+            <select name="{$namespace}[timeout]">
+                {foreach $timeout_options as $option}
+                    <option value="{$option.value}" {if $option.value === $settings.timeout}selected{/if}>{$option.title}</option>
+                {/foreach}
+            </select>
+            <p class="hint">{$obj->_w('The plugin will be disabled for the selected period of time if errors are detected.')}</p>
         </div>
     </div>
 </div>

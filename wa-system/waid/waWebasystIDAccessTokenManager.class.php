@@ -17,7 +17,7 @@ class waWebasystIDAccessTokenManager
      * @param array $params
      *  All these keys is required
      *      string      $params['issuer']     - issuer (who release token)
-     *      int         $params['contact_id'] - ID of contact for whom release token OR -1 for service-to-service communicartion token
+     *      int         $params['contact_id'] - ID of contact for whom release token OR -1 for service-to-service communication token
      *      string      $params['client_id']  - String ID of client for whom release token, contact must be "related" with this client
      *      int         $params['ttl']        - ttl of token in seconds
      *      string[]    $params['scopes']     - list of scopes access to which will be allowed by this access token
@@ -29,6 +29,7 @@ class waWebasystIDAccessTokenManager
      * @param string $secret - secret for sign
      * @return string|null - if something wrong returns null
      */
+    /*
     public function releaseToken(array $params, $secret)
     {
         $header = [
@@ -110,7 +111,7 @@ class waWebasystIDAccessTokenManager
 
         return $body . '.' . waUtils::urlSafeBase64Encode($sign);
     }
-
+*/
     /**
      * Extract some info from token (issuer, contact_id and client_id)
      * @param $token
@@ -188,6 +189,10 @@ class waWebasystIDAccessTokenManager
             $info['two_fa_time'] = $payload['two_fa_time'];
         }
 
+        if (isset($payload['inst_id']) && is_scalar($payload['inst_id'])) {
+            $info['inst_id'] = $payload['inst_id'];
+        }
+
         if (isset($payload['aux_info']) && is_string($payload['aux_info'])) {
             $aux_info = json_decode($payload['aux_info'], true);
             if (is_array($aux_info)) {
@@ -208,8 +213,10 @@ class waWebasystIDAccessTokenManager
         $scopes = waUtils::toStrArray($scope);
         $scopes = array_unique($scopes);
         $info = $this->extractTokenInfo($token);
-        $allowed_scopes = $info['scopes'];
-        $diff = array_diff($scopes, $allowed_scopes);
+        if (!empty($info['scopes']) && is_array($info['scopes'])) {
+            $allowed_scopes = $info['scopes'];
+            $diff = array_diff($scopes, $allowed_scopes);
+        }
         return empty($diff);
     }
 
@@ -220,6 +227,7 @@ class waWebasystIDAccessTokenManager
      * @param string $secret
      * @return bool
      */
+    /*
     public function verifyTokenSign($token, $secret)
     {
         if (!is_string($token)) {
@@ -236,11 +244,12 @@ class waWebasystIDAccessTokenManager
         $expected_sign = waUtils::urlSafeBase64Encode(hash_hmac('sha512', $body, $secret));
         return $sign === $expected_sign;
     }
+    */
 
     /**
      * Check token expiration
      * @param string $token
-     * @param string $grace_interval 
+     * @param string $grace_interval
      * @return bool
      */
     public function isTokenExpired($token, $grace_interval = null)
@@ -284,10 +293,12 @@ class waWebasystIDAccessTokenManager
      * Generate JWT ID
      * @return string
      */
+    /*
     protected function generateJTI()
     {
         return waUtils::getRandomHexString(64);
     }
+    */
 
     /**
      * Get current unix timestamp

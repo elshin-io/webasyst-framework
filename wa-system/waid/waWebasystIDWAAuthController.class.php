@@ -41,7 +41,7 @@ class waWebasystIDWAAuthController extends waViewController
 
         } catch (waWebasystIDException $e) {
             if ($e instanceof waWebasystIDAccessDeniedAuthException && !$this->auth->isBackendAuth()) {
-                // if webasyst ID server response 'access_denied' it means that user not allowed authorization, so not showing error (just finish proccess)
+                // if webasyst ID server response 'access_denied' it means that user not allowed authorization, so not showing error (just finish process)
                 $this->displayAuth(['type' => 'access_denied']);
             } else {
                 $this->displayError($e->getMessage());
@@ -459,7 +459,7 @@ class waWebasystIDWAAuthController extends waViewController
                 'status' => false,
                 'details' => [
                     'error_code' => 'not_bound',
-                    'error_message' => _w('Not bound yet'),
+                    'error_message' => _ws('Not bound yet'),
                     'webasyst_contact_info' => $webasyst_contact_info,
                 ]
             ];
@@ -473,7 +473,7 @@ class waWebasystIDWAAuthController extends waViewController
                 'status' => false,
                 'details' => [
                     'error_code' => 'access_denied',
-                    'error_message' => _w("Access denied")
+                    'error_message' => _ws("Access denied")
                 ]
             ];
         }
@@ -581,13 +581,28 @@ class waWebasystIDWAAuthController extends waViewController
 
 
         $name_fields = ['firstname', 'lastname', 'middlename'];
-        $is_empty_name = true;
-        foreach ($name_fields as $name_field) {
-            if (!empty($contact[$name_field])) {
-                $is_empty_name = false;
-                break;
+        $non_empty_name_fields = array_reduce($name_fields, function ($res, $field) use ($contact) {
+            if (!empty($contact[$field])) {
+                $res[$field] = $contact[$field];
+            }
+            return $res;
+        }, []);
+
+        if (count($non_empty_name_fields) === 1 && isset($non_empty_name_fields['firstname'])) {
+            // automatically generated contact name considered as empty
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $non_empty_name_fields['firstname'])) {
+                $non_empty_name_fields = [];
+            } elseif (!empty($contact_emails)) {
+                foreach ($contact_emails as $email) {
+                    if ($email === $non_empty_name_fields['firstname'] || strpos($email, $non_empty_name_fields['firstname'] . '@') === 0) {
+                        $non_empty_name_fields = [];
+                        break;
+                    }
+                }
             }
         }
+
+        $is_empty_name = empty($non_empty_name_fields);
 
         // if all three part on names is empty then is allowed to update all three name's parts
         if ($is_empty_name) {
@@ -633,7 +648,7 @@ class waWebasystIDWAAuthController extends waViewController
             try {
                 $contact->setPhoto($path);
             } catch (Exception $exception) {
-                
+
             }
 
         }

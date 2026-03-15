@@ -10,7 +10,7 @@ class blogPostEditAction extends waViewAction
     public function execute()
     {
         $post_id = waRequest::get('id', null, waRequest::TYPE_INT);
-
+        $this->setLayout(new blogDefaultLayout());
         $blog_model = new blogBlogModel();
         $blogs = $blog_model->getAvailable();
         if (!$blogs) {
@@ -168,8 +168,9 @@ class blogPostEditAction extends waViewAction
 
         $this->view->assign('last_schedule_cron_time', waSystem::getSetting('last_schedule_cron_time', 0, 'blog'));
         $this->view->assign('cron_command', 'php '.wa()->getConfig()->getRootPath().'/cli.php blog schedule');
+        $this->view->assign('is_premium', blogLicensing::isPremium());
+        $this->view->assign('blog_try_free_count', (new waAppSettingsModel())->get('blog', 'blog_try_free_count', 0));
 
-        $this->setLayout(new blogDefaultLayout());
         $this->getResponse()->setTitle($title);
     }
 

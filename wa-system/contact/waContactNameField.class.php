@@ -29,7 +29,7 @@ class waContactNameField extends waContactStringField
     public function get(waContact $contact, $format = null)
     {
         if ($contact['is_company']) {
-            $name = !empty($contact['company']) ? $contact['company'] : '';
+            $name = (string) ifset($contact, 'company', '');
         } else if ($contact['is_user'] && ($contact['is_user'] == 1 || $contact['login'])) {
             $name = waUser::formatName($contact);
         } else {
@@ -62,7 +62,10 @@ class waContactNameField extends waContactStringField
             $mdl = trim(ifset($contact, 'middlename', ''));
             $lst = trim(ifset($contact, 'lastname', ''));
             $cmp = trim(ifset($contact, 'company', ''));
-            $eml = trim($contact->get('email', 'default'));
+            $eml = $contact->get('email', 'default');
+            if (!empty($eml)) {
+                $eml = trim($eml);
+            }
 
             $name = array();
             if ($fst || $fst === '0' || $mdl || $mdl === '0' || $lst || $lst === '0')
@@ -153,16 +156,15 @@ class waContactNameField extends waContactStringField
             return '';
         }
         if (!empty($contact['is_company'])) {
-            $name = !empty($contact['company']) ? $contact['company'] : '';
+            $name = ifset($contact, 'company', '');
         } else if (!$force_not_user && !empty($contact['is_user']) && ($contact['is_user'] == 1 || !empty($contact['login']))) {
             $name = waUser::formatName($contact);
         } else {
             $name = array();
             foreach(self::getNameOrder() as $part) {
-                if (!empty($contact[$part])) {
-                    if ( ($part = trim($contact[$part])) || $part === '0') {
-                        $name[] = $part;
-                    }
+                $_name = trim((string) ifset($contact, $part, ''));
+                if ($_name !== '') {
+                    $name[] = $_name;
                 }
             }
             $name = trim(implode(' ', $name));

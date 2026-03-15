@@ -213,6 +213,15 @@ class webasystFieldConstructor
                     )
                 );
             }
+
+            /** 32 символа ограничение поля в wa_contact_data БД */
+            if (strlen($id) > 32) {
+                return [
+                    null,
+                    [['id_val' => _ws('ID must contain no more than 32 characters')]]
+                ];
+            }
+
             // field id exists
             if (null !== $this->isFieldSystem($id)) {
                 return array(
@@ -270,11 +279,13 @@ class webasystFieldConstructor
         }
 
         if ($select_field_value && $field->getParameter('storage') === 'data') {
-            $opts = array_map('trim', array_filter(explode("\r\n", $select_field_value)));
+            $opts = array_map('trim', explode("\r\n", $select_field_value));
             if (!empty($opts)) {
                 $select_options = array();
                 foreach ($opts as $val) {
-                    $select_options[$val] = $val;
+                    if ((string) $val !== '') {
+                        $select_options[$val] = $val;
+                    }
                 }
                 $field->setParameter('options', $select_options);
             }

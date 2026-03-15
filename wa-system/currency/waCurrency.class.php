@@ -124,7 +124,7 @@ class waCurrency
      *       not specified, then the numerical format is used by default.
      *     - Currency sign or name. To add it to the formatted amount value, specify one of the following identifiers in
      *       curly brackets:
-     *         {n}: full cyrrency name; e.g., "dollar"
+     *         {n}: full currency name; e.g., "dollar"
      *         {s}: brief currency name or sign; e.g., "$"
      *         {f}: name of the fractional currency unit; e.g., "cent/cents"
      *         {c}: currency code; e.g., "USD".
@@ -228,7 +228,7 @@ class waCurrency
                 $n = round($n, $precision + 2);
                 $n = floor($n * pow(10, $precision)) / ((float) pow(10, $precision));
             } else {
-                $n = round($n, $precision);
+                $n = round((float) $n, $precision);
 
                 // required to show '%.1' correctly for 0.99
                 if ($trim_to_width !== false && strlen($n) > $trim_to_width) {
@@ -428,7 +428,7 @@ class waCurrency
     /**
      * Returns the list of all available currencies.
      *
-     * @param string|bool $type Currency data item id specified in currency cofiguration file in wa-system/currency/data/:
+     * @param string|bool $type Currency data item id specified in currency configuration file in wa-system/currency/data/:
      *     - 'all': this value (or true), returns all currency data items
      *     - 'code': currency ISO3 code
      *     - 'sign': currency symbol

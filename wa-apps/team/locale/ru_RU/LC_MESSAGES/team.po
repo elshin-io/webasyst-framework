@@ -12,7 +12,7 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=((((n%10)==1)&&((n%100)!=11))?(0):(((((n%10)>=2)&&((n%10)<=4))&&(((n%100)<10)||((n%100)>=20)))?(1):2));\n"
 "X-Poedit-SourceCharset: utf-8\n"
 "X-Poedit-Basepath: .\n"
-"X-Generator: Poedit 2.0.6\n"
+"X-Generator: Poedit 2.3\n"
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPath-1: .\n"
 
@@ -135,6 +135,9 @@ msgstr "Нет доступа"
 
 msgid "Limited access"
 msgstr "Ограниченный доступ"
+
+msgid "Single app"
+msgstr "Одно приложение"
 
 msgid "Confirm access change"
 msgstr "Подтвердите изменение доступа"
@@ -317,7 +320,7 @@ msgid "Birthday"
 msgstr "День рождения"
 
 msgid "deleted contact_id="
-msgstr "удаленнный contact_id="
+msgstr "удаленный contact_id="
 
 msgid "granted backend access rights"
 msgstr "предоставил права доступа в бекенд"
@@ -748,8 +751,8 @@ msgstr "Вы уверены, что хотите отключить «%s»?"
 msgid "Are you sure to delete \"%s\"?"
 msgstr "Вы уверены, что хотите удалить «%s»?"
 
-msgid "Also delete all events imported from this calendar "
-msgstr "Также удалить все события, импортированные из этого календаря "
+msgid "Also delete all events imported from this calendar (%s)"
+msgstr "Также удалить все события, импортированные из этого календаря (%s)"
 
 msgid "%d event"
 msgid_plural "%d events"
@@ -799,8 +802,8 @@ msgstr "Настроить"
 msgid "unlink"
 msgstr "отключить"
 
-msgid "No external calendars connected"
-msgstr "Не подключен ни один внешний календарь"
+msgid "No external calendars are connected."
+msgstr "Не подключен ни один внешний календарь."
 
 msgid "Add external calendar"
 msgstr "Добавить внешний календарь"
@@ -972,6 +975,9 @@ msgstr "Может видеть участников"
 
 msgid "Can edit self contact info"
 msgstr "Может редактировать свои данные"
+
+msgid "Can post announcements on dashboard"
+msgstr "Может писать объявления на дашборде"
 
 msgid "Can add users"
 msgstr "Может добавлять сотрудников"
@@ -1717,7 +1723,7 @@ msgstr "Войти на телефоне по QR"
 msgid "Scan the QR code"
 msgstr "Отсканируйте QR-код"
 
-msgid "Open any of the Webasyst mobile apps and scan the code below on the ‘Sign in with QR code’ screen:"
+msgid "Open any of the Webasyst mobile apps and scan the code below on the “Sign in with QR code” screen:"
 msgstr "Откройте любое мобильное приложение из экосистемы Webasyst и отсканируйте этот код на экране «Войти по QR-коду»:"
 
 msgid "Mobile app code"
@@ -1812,3 +1818,15 @@ msgstr[2] "отключил доступ для %d контактов"
 
 msgid "Contact does not exist."
 msgstr "Контакт не существует."
+
+msgid "Yes"
+msgstr "Да"
+
+msgid "No"
+msgstr "Нет"
+
+msgid "The user will not see any other apps except for the selected one."
+msgstr "Сотрудник не увидит никаких других приложений, кроме выбранного."
+
+msgid "The contact will remain authorized for around 2 minutes after the access blocking."
+msgstr "Контакт будет оставаться авторизованным около 2 минут после блокировки доступа."

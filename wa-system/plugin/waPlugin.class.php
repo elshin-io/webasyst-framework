@@ -286,7 +286,7 @@ class waPlugin
 
     /**
      * Returns URL of plugin's root directory.
-     * @param bool $absolute Whether abolsute URL must be returned.
+     * @param bool $absolute Whether absolute URL must be returned.
      * @return string
      */
     public function getPluginStaticUrl($absolute = false)
@@ -320,7 +320,7 @@ class waPlugin
     /**
      * Adds a JavaScript file URL to the array returned by {$wa->js()}.
      * @param string $url JavaScript file URL, relative or absolute, depending on $is_plugin parameter value.
-     * @param bool $is_plugin Whether a relative or absolute file URL must be conitained in $url parameter.
+     * @param bool $is_plugin Whether a relative or absolute file URL must be contained in $url parameter.
      * @return null
      */
     protected function addJs($url, $is_plugin = true)
@@ -337,7 +337,7 @@ class waPlugin
     /**
      * Adds a CSS file URL to the array returned by {$wa->css()}.
      * @param string $url CSS file URL, relative or absolute, depending on $is_plugin parameter value.
-     * @param bool $is_plugin Whether a relative or absolute file URL must be conitained in $url parameter.
+     * @param bool $is_plugin Whether a relative or absolute file URL must be contained in $url parameter.
      * @return null
      */
     protected function addCss($url, $is_plugin = true)
@@ -364,6 +364,19 @@ class waPlugin
         }
     }
 
+    public function cron($param = array())
+    {
+        $file = $this->path.'/lib/config/cron.php';
+        if (file_exists($file)) {
+            /**
+             * @var array $cron Variable available at cron config file
+             */
+            return include($file);
+        } else {
+            return [];
+        }
+    }
+
 
     /**
      * @param array $params Control items params (see waHtmlControl::getControl for details)
@@ -387,6 +400,15 @@ class waPlugin
             }
         }
         return $controls;
+    }
+
+    /**
+     * @return string HTML to show on empty plugin settings page below "Plugin is installed and working."
+     * @since 3.5.0
+     */
+    public function getSettingsDisclaimerHtml()
+    {
+        return '';
     }
 
     /**

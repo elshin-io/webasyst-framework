@@ -6,7 +6,7 @@
  * @name tinkoffPayment
  * @description tinkoff Payments Standard Integration
  *
- * @link        https://oplata.tinkoff.ru/develop/api/payments/
+ * @link        https://www.tbank.ru/kassa/dev/payments/
  *
  * @property-read        $terminal_key
  * @property-read        $terminal_password
@@ -15,21 +15,24 @@
  * @property-read        $testmode
  * @property-read int    $check_data_tax
  * @property-read string $taxation
+ * @property-read string $payment_ffd
  * @property-read string $payment_object_type_product
  * @property-read string $payment_object_type_service
  * @property-read string $payment_object_type_shipping
  * @property-read string $payment_method_type
  *
  */
-class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, waIPaymentRecurrent, waIPaymentCancel, waIPaymentCapture
+class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, waIPaymentRecurrent, waIPaymentCancel, waIPaymentCapture, waIPaymentImage, waIPaymentCancelPending
 {
     private $order_id;
     private $receipt;
 
-    private static $currencies = array(
+    protected static $currencies = array(
         'RUB' => 643,
         'USD' => 840,
     );
+
+    protected static $supported_tax_rates = [0, 5, 7, 10, 18, 20, 22];
 
     const CHESTNYZNAK_PRODUCT_CODE = 'chestnyznak';
 
@@ -62,6 +65,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
             self::OPERATION_CAPTURE,
             self::OPERATION_REFUND,
             self::OPERATION_CANCEL,
+            self::OPERATION_CANCEL_PENDING,
             self::OPERATION_RECURRENT,
         );
     }
@@ -86,9 +90,10 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
             'Currency'    => ifset(self::$currencies[$this->currency_id]),
             'OrderId'     => $this->app_id.'_'.$this->merchant_id.'_'.$order_data['order_id'],
             'CustomerKey' => $c->getId(),
-            'Description' => ifempty($order_data, 'summary', ''),
+            'Description' => ifempty($order_data, 'description', ''),
             'PayType'     => $this->two_steps ? 'T' : 'O',
             'DATA'        => array(
+                'connection_type' => 'webasyst',
                 'Email' => $email,
             ),
         );
@@ -104,7 +109,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
         if ($this->getSettings('check_data_tax')) {
             $args['Receipt'] = $this->getReceiptData($order_data);
             if (!$args['Receipt']) {
-                return 'Данный вариант платежа недоступен. Воспользуйтесь другим способом оплаты.';
+                return 'Этот вариант платежа недоступен. Не удалось подготовить данные для формирования чека: возможно, неправильно настроены налоги.';
             }
         }
 
@@ -120,7 +125,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                 return null;
             }
         } catch (Exception $ex) {
-            return 'Данный вариант платежа недоступен. Воспользуйтесь другим способом оплаты.';
+            return 'Этот вариант платежа недоступен. Получено сообщение об ошибке от API платежной системы — подробности сохранены в файле логов.';
         }
         $view = wa()->getView();
 
@@ -139,7 +144,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
      *
      * @return string
      */
-    private function genToken($args)
+    protected function genToken($args)
     {
         $token = '';
         $args['Password'] = trim($this->terminal_password);
@@ -161,7 +166,19 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
      * @param $args
      * @throws waPaymentException
      */
-    private function checkToken($args)
+    protected function checkToken($args)
+    {
+        $token = ifset($args, 'Token', false);
+        unset($args['Token']);
+
+        $expected_token = $this->calculateToken($args);
+
+        if (empty($token) || ($token !== $expected_token)) {
+            throw new waPaymentException('Invalid token');
+        }
+    }
+
+    protected function calculateToken($args)
     {
         $args['Password'] = trim($this->getSettings('terminal_password'));
 
@@ -169,29 +186,22 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
             throw new waPaymentException('Password misconfiguration');
         }
 
-        $token = ifset($args, 'Token', false);
-        unset($args['Token']);
-
-
         ksort($args);
-        foreach ($args as &$arg) {
+        foreach ($args as $k => &$arg) {
             if (is_bool($arg)) {
                 $arg = $arg ? 'true' : 'false';
+            } else if (!is_scalar($arg)) {
+                unset($args[$k]);
             }
-            unset($arg);
         }
+        unset($arg);
 
-        $expected_token = hash('sha256', implode('', $args));
-
-        if (empty($token) || ($token !== $expected_token)) {
-            throw new waPaymentException('Invalid token');
-        }
+        return hash('sha256', implode('', $args));
     }
 
     protected function callbackInit($request)
     {
         $request = $this->sanitizeRequest($request);
-
         $pattern = '/^([a-z]+)_(\d+)_(.+)$/';
         if (!empty($request['OrderId']) && preg_match($pattern, $request['OrderId'], $match)) {
             $this->app_id = $match[1];
@@ -210,7 +220,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
      * @return mixed
      * @throws Exception
      */
-    private function apiQuery($method, $request)
+    protected function apiQuery($method, $request)
     {
         if (is_array($request)) {
             if (!array_key_exists('TerminalKey', $request)) {
@@ -301,6 +311,20 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                 self::log($this->id, 'Error: missed request parameter "Success"');
                 return;
             }
+            
+            if ($data['Success'] == 'true') {
+                // Check payment status
+            	$check_payment_data = $this->apiQuery('GetState', ['PaymentId' => $data['PaymentId']]);
+            	$status = ifset($check_payment_data, 'Status', null);
+            	if (in_array($status, ['CONFIRMED', 'AUTHORIZED'])) {
+            	    // Force callback handle
+                    $data['Status'] = $status;
+                    $data['TerminalKey'] = ifset($check_payment_data, 'TerminalKey', '');
+                    $data['Token'] = $this->calculateToken($data);
+                    $this->callbackHandler($data);
+            	}
+            }
+            
             $type = $data['Success'] == 'true' ? waAppPayment::URL_SUCCESS : waAppPayment::URL_FAIL;
             $url = $this->getAdapter()->getBackUrl($type, array('order_id' => $this->order_id));
             return array(
@@ -311,13 +335,20 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
         // Verify token
         $this->checkToken($data);
 
+        if (isset($data['SBPQR'])) {
+            $this->sbpQrImage($data);
+            exit;
+        }
+
         $transaction_data = $this->formalizeData($data);
 
         $app_payment_method = null;
+        $declare_fiscalization = false;
 
         switch ($transaction_data['type']) {
             case self::OPERATION_AUTH_ONLY:
                 if ($transaction_data['result']) {
+                    $declare_fiscalization = true;
                     $app_payment_method = self::CALLBACK_AUTH;
                 } else {
                     $app_payment_method = self::CALLBACK_DECLINE;
@@ -326,6 +357,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
 
             case self::OPERATION_AUTH_CAPTURE:
                 if ($transaction_data['result']) {
+                    $declare_fiscalization = true;
                     $app_payment_method = self::CALLBACK_PAYMENT;
                 } else {
                     $app_payment_method = self::CALLBACK_DECLINE;
@@ -337,6 +369,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                 break;
 
             case self::OPERATION_CAPTURE:
+                $declare_fiscalization = true;
                 $app_payment_method = self::CALLBACK_CAPTURE;
                 break;
 
@@ -357,6 +390,15 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
 
                 break;
 
+            case self::OPERATION_CANCEL_PENDING:
+                if ($transaction_data['state'] === self::STATE_DECLINED) {
+                    $app_payment_method = self::CALLBACK_DECLINE;
+                } else {
+                    $app_payment_method = self::CALLBACK_CANCEL;
+                }
+
+                break;
+
             default:
                 self::log($this->id, 'Unsupported callback operation: '.$transaction_data['type']);
                 return;
@@ -367,6 +409,10 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                 //Save transaction and run app callback only if it not repeated callback;
                 $transaction_data = $this->saveTransaction($transaction_data, $data);
                 $this->execAppCallback($app_payment_method, $transaction_data);
+
+                if ($declare_fiscalization && $this->getSettings('check_data_tax')) {
+                    $this->getAdapter()->declareFiscalization($transaction_data['order_id'], $this, ['id' => $transaction_data['native_id']]);
+                }
             } else {
                 $log = array(
                     'message'                  => 'silent skip callback as repeated',
@@ -377,7 +423,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                     'transaction_data'         => $transaction_data,
                 );
 
-                static::log($this->id, $log);
+                self::log($this->id, $log);
             }
         }
     }
@@ -414,7 +460,10 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
             }
 
             $res = $this->apiQuery('Cancel', $args);
-
+            if (in_array(ifset($res['Status']), ['ASYNC_REFUNDING', 'REFUNDING'])) {
+                sleep(1);
+                $res = $this->apiQuery('GetState', ['PaymentId' => $args['PaymentId']]);
+            }
 
             $response = array(
                 'result'      => 0,
@@ -469,7 +518,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
             return $response;
         } catch (Exception $ex) {
             $message = sprintf("Error occurred during %s: %s", __METHOD__, $ex->getMessage());
-            self::log($this->id, $message);
+            self::log($this->id, [$message, $ex->getTraceAsString()]);
             return array(
                 'result'      => -1,
                 'data'        => null,
@@ -495,8 +544,9 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
             'Currency'    => ifset(self::$currencies[$this->currency_id]),
             'OrderId'     => $this->app_id.'_'.$this->merchant_id.'_'.$order_data['order_id'],
             'CustomerKey' => $c->getId(),
-            'Description' => ifempty($order_data, 'summary', ''),
+            'Description' => ifempty($order_data, 'description', ''),
             'DATA'        => array(
+                'connection_type' => 'webasyst',
                 'Email' => $email,
             ),
         );
@@ -541,6 +591,158 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
 
     }
 
+    public function sbp($order_data)
+    {
+        $order_data = waOrder::factory($order_data);
+
+        // https://www.tbank.ru/kassa/dev/payments/#tag/Oplata-cherez-SBP
+        $args = array(
+            'Amount'      => round($order_data['amount'] * 100),
+            'Currency'    => ifset(self::$currencies[$this->currency_id]),
+            'OrderId'     => $this->app_id.'_'.$this->merchant_id.'_'.$order_data['order_id'],
+            'Description' => ifempty($order_data, 'description', ''),
+            'PayType'     => $this->two_steps ? 'T' : 'O',
+            'DATA'        => [
+                'connection_type' => 'webasyst',
+            ],
+        );
+
+        if ($this->getSettings('check_data_tax')) {
+            $full_order_data = $order_data;
+            if (!$full_order_data->items) {
+                $full_order_data = $this->getAdapter()->getOrderData($order_data['order_id']);
+            }
+            $args['Receipt'] = $this->getReceiptData($full_order_data, $this);
+            if (!$args['Receipt']) {
+                return 'Этот вариант платежа недоступен. Не удалось подготовить данные для формирования чека: возможно, неправильно настроены налоги.';
+            }
+        }
+
+        if (!empty($order_data['customer_contact_id'])) {
+            $args['CustomerKey'] = $order_data['customer_contact_id'];
+            try {
+                $c = new waContact($order_data['customer_contact_id']);
+                $email = $c->get('email', 'default');
+                $phone = $c->get('phone', 'default');
+            } catch (waException $e) {
+                // contact is deleted
+            }
+            if (empty($email)) {
+                //$email = $this->getDefaultEmail();
+            }
+            if (!empty($email)) {
+                $args['DATA']['Email'] = $email;
+            }
+            if (!empty($phone)) {
+                $args['DATA']['Phone'] = $phone;
+            }
+        }
+        if (empty($args['DATA'])) {
+            unset($args['DATA']);
+        }
+
+        try {
+            $payment_id = null;
+            $cache_key = 'tinkoff/sbp/' . md5('SBP'.$args['OrderId'].$args['Amount']);
+            $cache = new waSerializeCache($cache_key, -1, $this->app_id);
+            if ($cache->isCached()) {
+                $payment_id = $cache->get();
+                $check_payment_data = $this->apiQuery('GetState', ['PaymentId' => $payment_id]);
+                if (ifset($check_payment_data, 'ErrorCode', 0) != 0 || !in_array(ifset($check_payment_data, 'Status', ''), ['NEW', 'FORM_SHOWED'])) {
+                    unset($payment_id);
+                }
+            }
+
+            if (empty($payment_id)) {
+                $payment_data = $this->apiQuery('Init', $args);
+                $payment_id = ifset($payment_data, 'PaymentId', '');
+            }
+
+            if (empty($payment_id)) {
+                $cache->delete();
+                return null;
+            } else {
+                $cache->set($payment_id);
+            }
+
+            if ($this->isTestMode()) {
+                try {
+                    // Запрашивает успешную оплату по СБП для текущего счёта
+                    // https://www.tbank.ru/kassa/dev/payments/#tag/Oplata-cherez-SBP/operation/SbpPayTest
+                    $test_sbp_result = $this->apiQuery('SbpPayTest', [
+                        'PaymentId' => $payment_id,
+                    ]);
+                } catch (Exception $ex) {
+                    self::log($this->id, ['Unable create test QR code, using hardcoded stub', $ex->getMessage(), $ex->getTraceAsString()]);
+                    return [
+                        'svg' => file_get_contents($this->path.'/img/qr-test.svg'),
+                        'url' => wa()->getRootUrl().'wa-plugins/payment/tinkoff/img/qr-test.svg',
+                    ];
+                }
+            }
+
+            $qr_data = $this->apiQuery('GetQr', [
+                'PaymentId' => $payment_id,
+                'DataType' => 'IMAGE'
+            ]);
+            if (ifset($qr_data, 'Success', false)) {
+                $qr_link = $this->apiQuery('GetQr', [
+                    'PaymentId' => $payment_id,
+                    'DataType' => 'PAYLOAD'
+                ]);
+
+                if (ifset($qr_link, 'Success', false)) {
+                    return [
+                        'svg' => $qr_data['Data'],
+                        'url' => $qr_link['Data'],
+                    ];
+                }
+            }
+            $cache->delete();
+            return null;
+        } catch (Exception $ex) {
+            self::log($this->id, [$ex->getMessage(), $ex->getTraceAsString()]);
+            $cache->delete();
+            return false;
+        }
+    }
+
+    protected function sbpQrImage($params)
+    {
+        $order_data = [
+            'order_id'    => $this->order_id,
+            'amount'      => $params['amount'],
+            'customer_contact_id' => $params['customer_contact_id'],
+        ];
+
+        $sbp = $this->sbp($order_data);
+        if (empty($sbp['svg'])) {
+            throw new waException('Не удалось получить QR-код');
+        }
+
+        $response = wa()->getResponse();
+        $response->addHeader('Content-Type', 'image/svg+xml', true);
+        echo $sbp['svg'];
+        exit;
+    }
+
+    public function image($order_data)
+    {
+        $args = array(
+            'OrderId'     => $this->app_id.'_'.$this->merchant_id.'_'.$order_data['order_id'],
+            'amount'      => $order_data['amount'],
+            'description' => ifempty($order_data, 'description', ''),
+            'customer_contact_id' => $order_data['customer_contact_id'],
+            'SBPQR'       => 1,
+        );
+        $args['Token'] = $this->calculateToken($args);
+        return [
+            // At least one of keys `image_url` and `image_data_url` is required. Both are ok, too.
+            'image_url' => wa()->getRootUrl(true) . 'payments.php/tinkoff/?' . http_build_query($args),
+            //'image_data_url' => 'data:image/png;base64,........',
+        ];
+    }
+
     public function cancel($transaction_raw_data)
     {
         try {
@@ -550,6 +752,10 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
             );
 
             $data = $this->apiQuery('Cancel', $args);
+            if (in_array(ifset($data['Status']), ['ASYNC_REFUNDING', 'REFUNDING'])) {
+                sleep(1);
+                $data = $this->apiQuery('GetState', ['PaymentId' => $args['PaymentId']]);
+            }
             $transaction_data = $this->formalizeData($data);
 
             $this->saveTransaction($transaction_data, $data);
@@ -562,7 +768,35 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
 
         } catch (Exception $ex) {
             $message = sprintf("Error occurred during %s: %s", __METHOD__, $ex->getMessage());
-            self::log($this->id, $message);
+            self::log($this->id, [$message, $ex->getTraceAsString()]);
+            return array(
+                'result'      => -1,
+                'description' => $ex->getMessage(),
+            );
+        }
+    }
+
+    public function cancelPending($transaction_raw_data)
+    {
+        try {
+            $transaction = $transaction_raw_data['transaction'];
+            $args = array(
+                'PaymentId' => $transaction['native_id'],
+            );
+
+            $data = $this->apiQuery('Cancel', $args);
+            $transaction_data = $this->formalizeData($data);
+            $this->saveTransaction($transaction_data, $data);
+
+            return array(
+                'result'      => 0,
+                'data'        => $transaction_data,
+                'description' => '',
+            );
+
+        } catch (Exception $ex) {
+            $message = sprintf("Error occurred during %s: %s", __METHOD__, $ex->getMessage());
+            self::log($this->id, [$message, $ex->getTraceAsString()]);
             return array(
                 'result'      => -1,
                 'description' => $ex->getMessage(),
@@ -652,11 +886,22 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
     {
         $state = null;
         switch (ifset($data['Status'])) {
+            case 'NEW':
+            case 'FORM_SHOWED':
+            case 'AUTHORIZING':
+            case '3DS_CHECKING':
+            case '3DS_CHECKED':
+                $state = self::STATE_PENDING;
+                break;
+
             case 'AUTHORIZED':
+            case 'CONFIRMING':
                 $state = self::STATE_AUTH;
                 break;
 
             case 'CONFIRMED':
+            case 'ASYNC_REFUNDING':
+            case 'REFUNDING':
                 $state = self::STATE_CAPTURED;
                 break;
 
@@ -668,16 +913,27 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                 $state = self::STATE_REFUNDED;
                 break;
 
+            case 'AUTH_FAIL':
             case 'REJECTED':
                 $state = self::STATE_DECLINED;
                 break;
 
             case 'REVERSED':
-                $state = self::STATE_DECLINED;
+                $state = self::STATE_CANCELED;
+                break;
+
+            case 'PARTIAL_REVERSED': 
+                // Это кейс частичной отмены платежа в статусе AUTHORIZED
+                $state = self::STATE_PARTIAL_CANCELED;
+                break;
+
+            case 'DEADLINE_EXPIRED':
+            case 'CANCELED':
+                $state = self::STATE_CANCELED;
                 break;
 
             default:
-                throw new waException('Invalid transaction status');
+                throw new waException('Unknown transaction status');
         }
 
         return $state;
@@ -788,7 +1044,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                 break;
 
             case 'CONFIRMED':
-                if ($parent_transaction) {
+                if ($parent_transaction && $parent_transaction['type'] == self::OPERATION_AUTH_ONLY) {
                     $transaction_data['type'] = self::OPERATION_CAPTURE;
                 } else {
                     $transaction_data['type'] = self::OPERATION_AUTH_CAPTURE;
@@ -825,6 +1081,10 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                 $transaction_data['type'] = self::OPERATION_CANCEL;
                 break;
 
+            case 'CANCELED':
+                $transaction_data['type'] = self::OPERATION_CANCEL_PENDING;
+                break;
+
             default:
                 throw new waException('Invalid transaction status');
         }
@@ -857,17 +1117,21 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
         return $transaction_data;
     }
 
-    private function translateError($error_code)
+    protected function translateError($error_code)
     {
         $errors = [
             0 => null,
             7 => 'Покупатель не найден',
             53 => 'Обратитесь к продавцу',
+            76 => 'Операция по иностранной карте недоступна. Воспользуйтесь картой российского банка',
+            77 => 'Оплата иностранной картой недоступна. Воспользуйтесь картой российского банка',
+            99 => 'Банк, выпустивший карту, отклонил операцию',
             100 => 'Повторите попытку позже',
             101 => 'Не пройдена идентификация 3DS',
             102 => 'Операция отклонена, пожалуйста обратитесь в интернет-магазин или воспользуйтесь другой картой',
             103 => 'Повторите попытку позже',
             119 => 'Превышено кол-во запросов на авторизацию',
+            619 => 'Отсутствуют обязательные данные отправителя',
             1001 => 'Свяжитесь с банком, выпустившим карту, чтобы провести платеж',
             1003 => 'Неверный merchant ID',
             1004 => 'Карта украдена. Свяжитесь с банком, выпустившим карту',
@@ -889,24 +1153,37 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
             1058 => 'Такие операции запрещены для этой карты',
             1059 => 'Подозрение в мошенничестве. Свяжитесь с банком, выпустившим карту',
             1061 => 'Превышен дневной лимит платежей по карте',
-            1062 => 'Платежи по карте ограничены',
-            1063 => 'Операции по карте ограничены',
+            1062 => 'Банк, который выпустил карту, отклонил платеж',
+            1063 => 'Банк, который выпустил карту, считает платеж подозрительным',
+            1064 => 'Проверьте сумму',
             1065 => 'Превышен дневной лимит транзакций',
             1075 => 'Превышено число попыток ввода ПИН-кода',
+            1078 => 'Данный тип операции не поддерживается картой',
             1082 => 'Неверный CVV',
-            1088 => 'Ошибка шифрования. Попробуйте снова',
+            1088 => 'Банк, который выпустил карту, отклонил платеж',
             1089 => 'Попробуйте повторить попытку позже',
             1091 => 'Банк, выпустивший карту недоступен для проведения авторизации',
+            1092 => 'Банк, который выпустил карту, отклонил платеж',
             1093 => 'Подозрение в мошенничестве. Свяжитесь с банком, выпустившим карту',
-            1094 => 'Системная ошибка',
+            1094 => 'Банк, который выпустил карту, считает платеж подозрительным',
             1096 => 'Повторите попытку позже',
+            3001 => 'Оплата через СБП недоступна', // Ошибка возникает, если для терминала не активирован способ оплаты СБП. 
+                                                   // Сделать это можно в личном кабинете интернет-эквайринга, в настройках магазина, 
+                                                   // во вкладке Прием оплаты
+            3009 => 'Отказ в проведении операции от СБП или банка получателя',
+            3016 => 'Невозможно создать QR', // Ошибка передается, если сумма операции по СБП не соответствует диапазону возможной суммы. 
+                                             // По умолчанию диапазон составляет от 10 рублей до 1 миллиона рублей
+            3038 => 'Возврат средств через СБП доступен только со счетом в Т-Банк. Измените счет в настройках вашего магазина',
+            5032 => 'Отказ в проведении операции от СБП или банка получателя',
+            5061 => 'Покупатель превысил лимит по сумме операций по СБП',
+            5062 => 'Покупатель превысил лимит по количеству операций по СБП',
             9999 => 'Внутренняя ошибка системы',
         ];
 
         return array_key_exists($error_code, $errors) ? $errors[$error_code] : 'Неизвестная ошибка ('.$error_code.').';
     }
 
-    private function getParentTransaction($native_id)
+    protected function getParentTransaction($native_id)
     {
         $tm = new waTransactionModel();
         $search = array(
@@ -927,17 +1204,28 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
      * @param waOrder $order
      * @return array|null
      */
-    private function getReceiptData(waOrder $order)
+    protected function getReceiptData(waOrder $order)
     {
         if (!$this->receipt) {
             if (!($email = $order->getContactField('email'))) {
                 $email = $this->getDefaultEmail();
             }
+            $order_number = $order->id_str;
+            if (empty($order_number)) {
+                $order_number = $order->id;
+            }
             $this->receipt = array(
                 'Items'    => array(),
                 'Taxation' => $this->getSettings('taxation'),
                 'Email'    => $email,
+                'AddUserProp' => [
+                    'Name'  => 'Номер заказа',
+                    'Value' => $order_number,
+                ]
             );
+            if (empty($this->receipt['AddUserProp']['Value'])) {
+                unset($this->receipt['AddUserProp']);
+            }
             if ($phone = $order->getContactField('phone')) {
                 $this->receipt['Phone'] = sprintf('+%s', preg_replace('/^8/', '7', $phone));
             }
@@ -981,6 +1269,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                             'PaymentMethod' => $this->payment_method_type,
                             'PaymentObject' => $item_data['payment_object_type'],
                             'Tax' => $this->getTaxId($item_data),
+                            'MeasurementUnit' => (empty($item_data['stock_unit_code']) ? 'шт' : $item_data['stock_unit']),
                         ];
 
                         if (isset($item_data['fiscal_code'])) {
@@ -991,7 +1280,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                     }
                 }
 
-                if (!empty($item['tax_rate']) && (!$item['tax_included'] || !in_array($item['tax_rate'], array(0, 10, 18, 20)))) {
+                if (!empty($item['tax_rate']) && (!$item['tax_included'] || !in_array($item['tax_rate'], self::$supported_tax_rates))) {
                     return null;
                 }
             }
@@ -1002,7 +1291,7 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                     'tax_included' => $order->shipping_tax_included,
                 );
                 $this->receipt['Items'][] = array(
-                    'Name'          => mb_substr($order->shipping_name, 0, 64),
+                    'Name'          => empty($order->shipping_name) ? 'Доставка' : mb_substr($order->shipping_name, 0, 64),
                     'Price'         => round($order->shipping * 100),
                     'Quantity'      => 1,
                     'Amount'        => round($order->shipping * 100),
@@ -1010,32 +1299,48 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
                     'PaymentMethod' => $this->payment_method_type,
                     'Tax'           => $this->getTaxId($item),
                 );
-                if (!empty($item['tax_rate']) && (!$item['tax_included'] || !in_array($item['tax_rate'], array(0, 10, 18, 20)))) {
+                if (!empty($item['tax_rate']) && (!$item['tax_included'] || !in_array($item['tax_rate'], self::$supported_tax_rates))) {
                     return null;
                 }
+            }
+            if ($this->payment_ffd === '1.2') {
+                $this->ffd_12();
             }
         }
         return $this->receipt;
     }
 
-    private function getTaxId($item)
+    protected function getTaxId($item)
     {
         $tax = 'none';
         if (array_key_exists('tax_rate', $item) && array_key_exists('tax_included', $item) && $item['tax_rate'] !== null) {
+            // https://developer.tbank.ru/eacq/api/init  Receipt->Items->Tax
             if ($item['tax_rate'] == 0) {
                 $tax = 'vat0';
+            } elseif ($item['tax_included'] && $item['tax_rate'] == 5) {
+                $tax = 'vat5';
+            } elseif ($item['tax_included'] && $item['tax_rate'] == 7) {
+                $tax = 'vat7';
             } elseif ($item['tax_included'] && $item['tax_rate'] == 10) {
                 $tax = 'vat10';
             } elseif ($item['tax_included'] && $item['tax_rate'] == 18) {
-                $tax = 'vat18';
+                $tax = 'vat18'; // устарело?..
             } elseif ($item['tax_included'] && $item['tax_rate'] == 20) {
                 $tax = 'vat20';
+            } elseif ($item['tax_included'] && $item['tax_rate'] == 22) {
+                $tax = 'vat22';
+            } elseif (!$item['tax_included'] && $item['tax_rate'] == 5) {
+                $tax = 'vat105';
+            } elseif (!$item['tax_included'] && $item['tax_rate'] == 7) {
+                $tax = 'vat107';
             } elseif (!$item['tax_included'] && $item['tax_rate'] == 10) {
                 $tax = 'vat110';
             } elseif (!$item['tax_included'] && $item['tax_rate'] == 18) {
-                $tax = 'vat118';
+                $tax = 'vat118'; // устарело?..
             } elseif (!$item['tax_included'] && $item['tax_rate'] == 20) {
                 $tax = 'vat120';
+            } elseif (!$item['tax_included'] && $item['tax_rate'] == 22) {
+                $tax = 'vat122';
             }
         }
         return $tax;
@@ -1069,5 +1374,25 @@ class tinkoffPayment extends waPayment implements waIPayment, waIPaymentRefund, 
     protected function isTestMode()
     {
         return $this->testmode || 'DEMO' === substr($this->getSettings('terminal_key'), -4);
+    }
+
+    /**
+     * @return void
+     */
+    protected function ffd_12()
+    {
+        /** https://www.tinkoff.ru/kassa/develop/api/receipt/ffd12/#Items */
+        $this->receipt['FfdVersion'] = '1.2';
+        foreach ($this->receipt['Items'] as &$item) {
+            $item['MeasurementUnit'] = ifset($item, 'MeasurementUnit', 'шт');
+            if (isset($item['Ean13'])) {
+                $item['MarkProcessingMode'] = 0;
+                $item['PaymentObject'] = 'goods_with_marking_code';
+                $item['MarkCode'] = [
+                    'MarkCodeType' => 'EAN13',
+                    'Value' => $item['Ean13']
+                ];
+            }
+        }
     }
 }

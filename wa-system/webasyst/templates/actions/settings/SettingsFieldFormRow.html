@@ -18,19 +18,17 @@
 
 {if $f->getType() != "Hidden"}
     <tr class="{$tr_classes}" data-field-id="{$fid}"{if !$new_field} data-field-type="{$f->getType()}"{/if}>
-        <td class="min-width"><i class="fas fa-bars js-subfield-sort" style="cursor: move"></i></td>
-        <td class="min-width">
+        <td class="min-width"><i class="fas fa-bars gray js-subfield-sort" style="cursor: move"></i></td>
+        <td class="hidden">
             {if $f->getParameter('always_required')}
                 <input type="hidden" name="{$prefix}[{$fid}][_disabled]" value="">
-                <input type="checkbox" checked disabled>
             {else}
                 <input type="hidden" name="{$prefix}[{$fid}][_disabled]" value="1">
-                <input type="checkbox" id="enbl-{$uniqid}" name="{$prefix}[{$fid}][_disabled]" value=""{if !$f->getParameter('_disabled')} checked{/if}>
             {/if}
         </td>
         <td>
             <label for="enbl-{$uniqid}" class="name-label">{$f->getName(null, true)}</label>
-            <input type="text" class="name-input" placeholder="[s`Field name`]" name="{$prefix}[{$fid}][localized_names]" value="{$f->getName(null, true)}">
+            <input type="text" class="name-input" placeholder="[s`Field name`]" name="{$prefix}[{$fid}][localized_names]" value="{$f->getName(null, true)|trim}">
 
             {if !$new_field}
                 <p class="name-hint hint">{localizedType f=$f}</p>
@@ -52,7 +50,7 @@
                             <a
                                 href="#"
                                 class="inline js-delete-subfield"
-                                title="[s`Delete`] {$f->getName(null, true)}"
+                                title="[s`Delete`] {$f->getName(null, true)|escape}"
                                 data-dialog-remove-button-text="[s`Delete`]"
                                 data-dialog-cancel-button-text="[s`Cancel`]"
                             ><i class="fas fa-trash-alt"></i></a>

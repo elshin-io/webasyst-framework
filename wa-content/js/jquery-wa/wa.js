@@ -14,6 +14,8 @@
 
         plugin_options = ( typeof plugin_options === "object" ? plugin_options : {});
 
+        initLoadingIcon();
+
         if (return_instance) { result = getInstance(); } else { init(); }
 
         return result;
@@ -52,6 +54,24 @@
             }
 
             return deferred.promise();
+        }
+
+        function initLoadingIcon() {
+            const $spinner = $('<span style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);"><i class="fas fa-spinner wa-animation-spin"></i></span>');
+
+            const _search = plugin_options.search;
+            plugin_options.search = function () {
+                if ($(this).parent().hasClass('state-with-inner-icon')) {
+                    $(this).after($spinner);
+                }
+                if (typeof _search === 'function') _search.call(this, ...arguments);
+            };
+
+            const _response = plugin_options.response;
+            plugin_options.response = function () {
+                $spinner.remove();
+                if (typeof _response === 'function') _response.call(this, ...arguments);
+            };
         }
     };
 
@@ -106,6 +126,8 @@
                 that.lock_body_scroll = (typeof options["lock_body_scroll"] === "boolean" ? options["lock_body_scroll"] : true);
                 that.bodyDefaultPadding = document.body.style.getPropertyValue('padding-right');
                 that.bodyDefaultBoxSizing = document.body.style.getPropertyValue('box-sizing');
+                const append_to = that.$body.find(options["append_to"]);
+                that.append_to = append_to.length ? append_to : that.$body;
 
                 // DYNAMIC VARS
                 that.is_visible = false;
@@ -180,7 +202,7 @@
             const is_exist = $.contains(top.document, that.$wrapper);
 
             if (!is_exist) {
-                that.$body.append(that.$wrapper);
+                that.append_to.append(that.$wrapper);
             }
 
             that.$wrapper.addClass(class_names["wrapper-opened"]);
@@ -596,6 +618,9 @@
                 that.animation_time = 333;
                 that.hide_class = "is-hide";
                 that.width = options["width"] || false;
+                that.staticPosition = options["staticPosition"] || false;
+                const append_to = that.$body.find(options["append_to"]);
+                that.append_to = append_to.length ? append_to : that.$body;
 
                 // DYNAMIC VARS
                 that.is_visible = false;
@@ -682,6 +707,10 @@
             that.$wrapper.addClass(direction_class).addClass(that.hide_class).show();
             that.$wrapper[0].style.display = 'block';
 
+            if (that.staticPosition) {
+                that.$wrapper.addClass('static');
+            }
+
             if (that.width) {
                 that.$block.css('width', that.width);
             }
@@ -719,7 +748,7 @@
                             if (that.lock_body_scroll) {
                                 Drawer.lockBodyScroll(false);
                             }
-                        }, that.animation_time);
+                        }, that.staticPosition ? 0 : that.animation_time);
                     }
                 }
             }
@@ -751,11 +780,11 @@
                 is_exist = $.contains(document, that.$wrapper[0]);
 
             if (!is_exist) {
-                that.$body.append(that.$wrapper.show());
+                that.append_to.append(that.$wrapper.show());
             }
 
             if (!that.is_locked) {
-                if (that.lock_body_scroll) {
+                if (that.lock_body_scroll && !that.staticPosition) {
                     Drawer.lockBodyScroll(true);
                 }
 
@@ -763,7 +792,7 @@
                 setTimeout( function() {
                     that.$wrapper.removeClass(that.hide_class);
                     that.is_locked = false;
-                }, 100);
+                }, that.staticPosition ? 0 : 100);
             }
 
             that.is_visible = true;
@@ -889,6 +918,7 @@
             };
             that.options = {
                 hover: (typeof options["hover"] === "boolean" ? options["hover"] : true),
+                hover_out_delay: (typeof options["hover_out_delay"] === "number" && options["hover_out_delay"] > 0 ? options["hover_out_delay"] : 0),
                 hide: (typeof options["hide"] === "boolean" ? options["hide"] : true),
                 items: (options["items"] ? options["items"] : null),
                 active_class: (options["active_class"] ? options["active_class"] : "selected"),
@@ -914,9 +944,29 @@
                     that.toggleMenu(true);
                 });
 
+                var mouseenter_before_leave = false;
+                var leave_timer_id = null;
                 that.$wrapper.on("mouseleave", function() {
-                    that.toggleMenu(false);
+                    if (mouseenter_before_leave) {
+                        mouseenter_before_leave = false;
+                    }
+
+                    leave_timer_id = setTimeout(() => {
+                        if (mouseenter_before_leave) {
+                            mouseenter_before_leave = false;
+                        } else {
+                            that.toggleMenu(false);
+                        }
+                    }, that.options.hover_out_delay);
                 });
+
+                if (that.options.hover_out_delay) {
+                    that.$menu.on("mouseenter", function() {
+                        clearTimeout(leave_timer_id);
+                        leave_timer_id = null;
+                        mouseenter_before_leave = true;
+                    });
+                }
             }
 
             that.$button.on("click touchend", function(event) {
@@ -927,7 +977,7 @@
             if (that.options.items) {
                 that.initChange(that.options.items);
             } else if(that.options.hide) {
-                that.$menu.on("click touchend", function() {
+                that.$menu.on("click", function() {
                     that.hide();
                 });
             }
@@ -1015,7 +1065,7 @@
 
             that.$active = that.$menu.find(selector + "." + active_class);
 
-            that.$wrapper.on("click touchend", selector, onChange);
+            that.$wrapper.on("click", selector, onChange);
 
             function onChange(event) {
                 event.preventDefault();
@@ -2361,7 +2411,7 @@
             that.is_click = that.options.trigger === 'click' || that.$wrapper.getAttribute('data-wa-tooltip-trigger') === 'click' || false;
             that.icon = that.options.icon || that.$wrapper.getAttribute('data-wa-tooltip-icon') || false;
             that.template = that.options.template || that.$wrapper.getAttribute('data-wa-tooltip-template') || false
-
+            that.tippy = {};
             that.wa_url =  window.wa_url || '/';
 
             //
@@ -2370,15 +2420,24 @@
                 that.options.allowHTML = true;
             }
 
+            that._promise = new Promise((resolve, reject) => {
+                that._resolve = resolve;
+                that._reject = reject;
+            });
+
             // INIT
             if (window.Popper && window.tippy) {
                 that.init()
             } else {
                 // DYNAMIC LOAD SOURCE
                 (async () => {
-                    await import(`${that.wa_url}wa-content/js/tippy/popper.min.js`).then((async () => {
-                        await import(`${that.wa_url}wa-content/js/tippy/wa.tooltip.js`).then(() => that.init())
-                    }))
+                    try {
+                        await import(`${that.wa_url}wa-content/js/tippy/popper.min.js`)
+                        await import(`${that.wa_url}wa-content/js/tippy/wa.tooltip.js`)
+                        that.init()
+                    } catch (error) {
+                        that._reject(error);
+                    }
                 })()
             }
         }
@@ -2389,6 +2448,8 @@
             that.options.onCreate = function (tooltip) {
                 that.setIcon(tooltip);
                 that.setClass(tooltip);
+
+                that.tippy = tooltip;
             }
 
             that.setContent();
@@ -2398,10 +2459,13 @@
 
             /* remove tooltip without text*/
             if (!tooltip.popper.innerText) {
-                tooltip.destroy()
+                tooltip.destroy();
+                return;
             }
 
-            that.$wrapper.dataset.tooltip = tooltip;
+            that.tippy = tooltip;
+
+            that._resolve(that.tippy);
         };
 
         Tooltip.prototype.setContent = function () {
@@ -2512,7 +2576,7 @@
         Upload.prototype.initClass = function (options) {
             let that = this;
 
-            that.options = $.extend(true, $.fn['waUpload'].defaults, options);
+            that.options = $.extend({}, $.fn['waUpload'].defaults, options);
 
             if (that.options.is_uploadbox) {
                 that.$wrapper.addClass('box uploadbox');
@@ -2562,6 +2626,7 @@
             const that = this;
 
             that.files = e.originalEvent.dataTransfer.files;
+            that.$file_input[0].files = that.files;
 
             that.handleFiles(that.files);
         }
@@ -2740,7 +2805,7 @@
                             </div>
                         </li>`;
             this.$wrapper.append(dropdown)
-            this.$wrapper.find('.dropdown').waDropdown();
+            this.$wrapper.find('.dropdown').waDropdown({ hover_out_delay: 100 });
         };
 
         Tabs.prototype.initArrows = function() {
@@ -3015,7 +3080,7 @@
             });
 
             this.$toggler.siblings().each((i, el) => {
-                if (el.nodeName !== 'SCRIPT' && el.nodeName !== 'STYLE') {
+                if (el.nodeName !== 'SCRIPT' && el.nodeName !== 'STYLE' && !el.classList.contains('js-no-animation-sidebar-block')) {
                     $(el).slideToggle(400, function () {
                         const self = $(this);
 
@@ -3870,22 +3935,29 @@
                 return Math.max(bytes, 0.01).toFixed(2) + ((i >=0)? (' ' + $_(['kB', 'MB', 'GB', 'TB', 'PB', 'EB'][i])):'');
             }
         },
+        async copyToClipboard(plain, rich) {
+            if (typeof window.ClipboardItem !== 'undefined') {
+                const clipboard_item = new ClipboardItem({
+                    'text/plain': new Blob([plain], {
+                        type: 'text/plain'
+                    }),
+                    'text/html': new Blob([rich ?? plain], {
+                        type: 'text/html'
+                    }),
+                });
 
-        copyToClipboard(text) {
-            if (navigator.clipboard && window.isSecureContext) {
-                return navigator.clipboard.writeText(text);
+                await navigator.clipboard.write([clipboard_item]);
             } else {
-                const textArea = document.createElement("textarea");
+                const callback = event => {
+                    event.clipboardData.setData('text/plain', plain);
+                    event.clipboardData.setData('text/html', rich ?? plain);
+                    event.preventDefault();
+                };
 
-                textArea.value = text;
-                textArea.style.position = "absolute";
-                textArea.style.opacity = '0';
-
-                document.body.appendChild(textArea);
-                textArea.select();
-                return new Promise((res, rej) => {
+                await new Promise((res, rej) => {
+                    document.addEventListener('copy', callback);
                     document.execCommand('copy') ? res() : rej();
-                    textArea.remove();
+                    document.removeEventListener('copy', callback);
                 });
             }
         },

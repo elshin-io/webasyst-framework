@@ -139,6 +139,9 @@ class teamConfig extends waAppConfig
             // bind this user with WAID provided and give simple API code response.
             //
             $token_data = json_decode($data['data'], true);
+            if (!is_array($token_data)) {
+                $token_data = [];
+            }
             $login = waUtils::getRandomHexString(12);
             $password = waContact::generatePassword();
             teamHelper::convertToBackendUser($contact['id'], $token_data, $login, $password);
@@ -331,14 +334,14 @@ class teamConfig extends waAppConfig
                         $l['params_html'] = sprintf_wp(
                             $actions[$l['action']]['label'],
                             '<a href="'.$app_url.'calendar/">'.
-                            htmlspecialchars(ifempty($events[$l['params']], $l['params'])).
+                            htmlspecialchars(ifempty($events[$l['params']], ($l['params'] ?: ''))).
                             '</a>'
                         );
                     } elseif ($actions[$l['action']]['format'] == 'calendar') {
                         $l['params_html'] = sprintf_wp(
                             $actions[$l['action']]['label'],
                             '<a href="'.$app_url.'calendar/">'.
-                            htmlspecialchars(ifempty($calendars[$l['params']], $l['params'])).
+                            htmlspecialchars(ifempty($calendars[$l['params']], ($l['params'] ?: ''))).
                             '</a>'
                         );
                     } else {

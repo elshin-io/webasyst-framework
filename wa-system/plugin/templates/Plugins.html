@@ -7,22 +7,56 @@
 <script type="text/javascript" src="{$wa_url}wa-content/js/codemirror/mode/htmlmixed/htmlmixed.js"></script>
 <script type="text/javascript" src="{$wa_url}wa-content/js/ace/ace.js?{$wa->version(true)}"></script>
 
+{if !empty($installer) && $wa->installer}
+    {$delete_plugin_url =  "`$wa_backend_url`installer/assets/?module=plugins&action=remove"}
+    <style>
+    #wa-plugin-list > li:hover > .dropdown.count { visibility: visible; }
+    #wa-plugin-list > li > .dropdown.count {
+        visibility: hidden;
+        position: absolute;
+        top: .5rem;
+        right: .5rem;
+    }
+    [data-theme="dark"] #wa-plugin-list > li .hint { color: var(--text-color-hint-strong); }
+    #wa-plugins-content:has(.i-store-wrapper) { padding: 0; }
+    </style>
+{/if}
+
 {$plugin_names = array()}
-<div id="wa-plugins-container" class="content flexbox{if !empty($container_class)} {$container_class}{/if}">
-    <div class="sidebar flexbox width-21rem bordered-right bordered-left">
+<div id="wa-plugins-container" class="content flexbox wrap-mobile{if !empty($container_class)} {$container_class}{/if}">
+    <div class="sidebar flexbox blank width-21rem bordered-right bordered-left" style="{if $wa->isMobile()}position: relative; width:100%; height: auto !important; min-height: auto; top: 0;{/if}">
             <div class="sidebar-body{if empty($installer)} custom-pt-16{/if}">
-                <ul class="menu js-plugin-list" id="wa-plugin-list">
-                    {*if !empty($installer)}
-                    <li id="wa-plugins-list" class="selected js-plugins-list" data-url="{$wa_backend_url}installer/?module=plugins&action=view&slug={$wa->app()}">
-                        <a href="{$plugins_hash}/">
-                            <span class="icon"><i class="fas fa-star"></i></span>
-                            <span>[s`Popular plugins`]</span>
+
+                {if $wa->user()->getRights('installer')}
+                    {if empty($plugins_list_url)}
+                        {$plugins_list_url = "`$wa_backend_url`installer/?module=plugins&action=view&slug=`$wa->app()`"}
+                    {/if}
+                    <div class="box custom-mt-8 custom-mb-0">
+                        <a href="{$plugins_hash}/" data-url="{$plugins_list_url|escape}" class="button webasyst-magic-wand shadowed full-width js-plugins-list custom-py-8">
+                            <i class="icon"></i>
+                            {sprintf(
+                                '[s`All plugins › %s`]',
+                                sprintf('<strong>%s</strong>', $wa->appName())
+                            )}
                         </a>
-                    </li>
-                    {/if*}
+                    </div>
+                {/if}
+
+                <h5 class="heading custom-mt-12">[s`Installed`]</h5>
+                <ul class="menu js-plugin-list" id="wa-plugin-list">
                     {foreach $plugins as $plugin}
                         {$plugin_names[$plugin.id] = $plugin.name|escape}
-                        <li id="plugin-{$plugin.id}"{if !empty($plugin.custom_settings_url)} data-url="{$plugin.custom_settings_url}"{elseif !empty($plugin.custom_settings)} data-settings="1"{/if}>
+                        <li id="plugin-{$plugin.id}"{strip}
+                            {if !empty($plugin.custom_settings_url)}
+                                data-url="{$plugin.custom_settings_url}"
+                            {elseif !empty($plugin.custom_settings)}
+                                data-settings="1"
+                            {/if}
+                            {if !empty($delete_plugin_url)}
+                                data-plugin-slug="{$wa->app()|escape}/plugins/{$plugin.id|escape}"
+                                data-plugin-vendor="{if !empty($plugin.vendor)}{$plugin.vendor|escape}{/if}"
+                            {/if}
+                        {/strip}>
                             <a href="{$plugins_hash}/{$plugin.id}/">
                                 {if !isset($plugin.img)}
                                     <i class="fas fa-plug"></i>
@@ -36,35 +70,50 @@
                                         <p class="hint">{$plugin.description|escape}</p>
                                     {/if}
                                 </span>
+                                <span class="count" style="width:16px;"></span>
                             </a>
+
+                            {if !empty($delete_plugin_url)}
+                                <div class="dropdown count action">
+                                    <a class="dropdown-toggle without-arrow text-gray custom-px-8 custom-py-4" href="javascript:void(0);">
+                                        <i class="fas fa-ellipsis-h text-light-gray"></i>
+                                    </a>
+                                    <div class="dropdown-body right">
+                                        <ul class="menu">
+                                            <li>
+                                                <a class="js-delete-plugin" href="javascript:void(0);">
+                                                    <i class="fas fa-trash-alt text-light-gray"></i>
+                                                    <span>[s`Delete plugin`]</span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            {/if}
+
                         </li>
                     {/foreach}
                 </ul>
                 {if empty($plugins)}
-                    <div class="align-center gray box custom-mt-16">
+                    <div class="align-center hint box custom-mt-16">
                         [s`No plugins are installed.`]
-                    </div>
-                {/if}
-
-                {if $wa->user()->getRights('installer') && $wa->app() != 'shop'}
-                    <div class="box custom-mt-0">
-                        {*<a href="{$wa_backend_url}installer/store/app/{$wa->app()}/plugins/" data-url="{$wa_backend_url}installer/?module=plugins&action=view&slug={$wa->app()}" class="button webasyst-magic-wand full-width js-plugins-list"><i class="icon"></i>[s`Browse plugins`]</a>*}
-                        <a href="{$wa_backend_url}installer/?module=plugins&action=view&slug={$wa->app()}" data-url="{$wa_backend_url}installer/?module=plugins&action=view&slug={$wa->app()}" class="button webasyst-magic-wand full-width js-plugins-list"><i class="icon"></i>[s`Browse plugins`]</a>
                     </div>
                 {/if}
 
             </div>
         </div>
-    <div class="article content">
-        <div id="wa-plugins-content" class="article-body">
-            {if !empty($plugins)||!empty($installer)}[s`Loading`]... <i class="fas fa-spinner fa-spin loading"></i>{/if}
+    <div class="content">
+        <div class="article wider"{if $wa->isMobile()} style="max-width: 100vw;"{/if}>
+            <div id="wa-plugins-content" class="article-body">
+                {if !empty($plugins)||!empty($installer)}[s`Loading`]... <i class="fas fa-spinner fa-spin loading"></i>{/if}
+            </div>
         </div>
     </div>
 </div>
 
 <script type="text/javascript">
 (function ($) {
-    var plugins_title = {_w('Plugins')|json_encode};
+    var plugins_title = {_ws('Plugins')|json_encode};
 
     $.plugins = {
         options: {
@@ -104,11 +153,13 @@
                     cache: false
                 });
 
+                this.initDropdowns();
+
                 if ($.wa) $.wa.errorHandler = function (xhr) {
                     if ((xhr.status === 403) || (xhr.status === 404)) {
                         var text = $(xhr.responseText);
                         if (text.find('.dialog-content').length) {
-                            text = $('<div class="block double-padded"></div>').append(text.find('.dialog-content *'));
+                            text = $('<div class="block double-padded"></div>').append(text.find('.dialog-content'));
 
                         } else {
                             text = $('<div class="block double-padded"></div>').append(text.find(':not(style)'));
@@ -157,6 +208,44 @@
                     });
                 }
             }
+        },
+
+        initDropdowns: function() {
+            var that = this,
+                delete_plugin_url = this.options.delete_plugin_url;
+            if (!delete_plugin_url || !$.fn.waDropdown || !$.waDialog) {
+                $("#wa-plugin-list .dropdown").hide();
+                return;
+            }
+
+            $("#wa-plugin-list .dropdown").waDropdown();
+
+            $('#wa-plugin-list').on('click', '.js-delete-plugin', function() {
+                var $plugin_li = $(this).closest('[data-plugin-slug]');
+                if (!$plugin_li.length) {
+                    return;
+                }
+                var slug = $plugin_li.data('plugin-slug');
+                var vendor = $plugin_li.data('plugin-vendor');
+
+
+                $.waDialog.confirm({
+                    title: that.options.locale.confirm_delete_title,
+                    cancel_button_title: that.options.locale.confirm_delete_cancel_button,
+                    success_button_title: that.options.locale.confirm_delete_confirm_button,
+                    cancel_button_class: 'light-gray',
+                    success_button_class: 'danger',
+                    onSuccess() {
+
+                        var data = { extras_id: {} };
+                        data.extras_id[slug] = vendor;
+                        $.post(delete_plugin_url, data).then(function(r) {
+                            window.location.reload();
+                        });
+
+                    }
+                });
+            });
         },
 
         parsePath: function (path) {
@@ -223,7 +312,8 @@
             if (!$plugin.length) {
                 let hash = $('.js-plugin-list').find('> li:first-child > a').attr('href');
                 if (hash) {
-                    $.wa.setHash(hash)
+                    $.wa.setHash(hash);
+                    setTimeout(function() { $.plugins.dispatch(location.hash, true); }, 0);
                 }
                 return;
             }
@@ -239,52 +329,40 @@
                 this.xhr.abort();
             }
 
-            $plugin.on('click', function(e) {
-                e.preventDefault();
-
-                getContent();
-            });
-
             $content.html(this.options.loading);
             var self = this;
-
-            getContent();
-
-            function getContent() {
-              this.xhr = $.ajax({
+            this.xhr = $.ajax({
                 url: url,
                 success: function (data) {
-                  self.xhr = null;
-                  if (self.path.plugin == path.plugin) {
+                    self.xhr = null;
+                    if (self.path.plugin == path.plugin) {
+                        $content.html(data);
+                        // update title
+                        if (self.path.plugin) {
+                            document.title = self.options.plugin_names[self.path.plugin] + self.options.title_suffix;
+                        } else {
+                            document.title = plugins_title + self.options.title_suffix;
+                        }
 
-                    $content.html(data);
-                    // update title
-                    if (self.path.plugin) {
-                      document.title = self.options.plugin_names[self.path.plugin] + self.options.title_suffix;
-                    } else {
-                      document.title = plugins_title + self.options.title_suffix;
+                        self.$menu.find('li.selected').removeClass('selected');
+                        var href = self.options.path + (self.path.plugin ? self.path.plugin + '/' : '');
+                        self.$menu.find('a[href="' + href + '"]').parents('li').addClass('selected');
+
+                        $(document).trigger('wa_loaded');
+
+                        if (!self.options.useIframeTransport) {
+                            $('#plugins-settings-form').submit(function () {
+                                self.saveHandlerAjax(this);
+                                return false;
+                            });
+                        } else {
+                            $('#plugins-settings-form').submit(function () {
+                                self.saveHandlerIframe(this);
+                            });
+                        }
                     }
-
-                    self.$menu.find('li.selected').removeClass('selected');
-                    var href = self.options.path + (self.path.plugin ? self.path.plugin + '/' : '');
-                    self.$menu.find('a[href="' + href + '"]').parents('li').addClass('selected');
-
-                    $(document).trigger('wa_loaded');
-
-                    if (!self.options.useIframeTransport) {
-                      $('#plugins-settings-form').submit(function () {
-                        self.saveHandlerAjax(this);
-                        return false;
-                      });
-                    } else {
-                      $('#plugins-settings-form').submit(function () {
-                        self.saveHandlerIframe(this);
-                      });
-                    }
-                  }
                 }
-              });
-            }
+            });
         },
 
         saveHandlerIframe: function (form) {
@@ -451,15 +529,39 @@
         'wa_url': {$wa_url|json_encode},
         'loading': {'<div class="box">[`Loading...`] <i class="fas fa-spinner fa-spin loading"></i></div>'|json_encode},
         'title_suffix': ' — {$wa->accountName(false)|escape:'javascript'}',
-        'plugin_names': {$plugin_names|json_encode}
+        'plugin_names': {$plugin_names|json_encode},
+
+        'app_id': {$wa->app()|json_encode},
+        'delete_plugin_url': {$delete_plugin_url|default:null|json_encode},
+        locale: {
+            confirm_delete_title: {_wd('installer', "This will delete the product’s source code and data, without a recovery option. Are you sure?")|json_encode},
+            confirm_delete_confirm_button: {_w('Delete')|json_encode},
+            confirm_delete_cancel_button: {_w('Cancel')|json_encode}
+        }
     });
 
     {if empty($is_ajax)}
-        $('.js-plugin-list a').on('click', function  () {
+        $('.js-plugin-list > li[id] > a, .js-plugins-list').on('click', function  () {
             $.plugins.dispatch($(this).attr('href'), true);
             return false;
         });
     {/if}
+
+    {* запоминаем к настройкам какого плагина нужно перейти после обновления страницы *}
+    $(document).on('installer_after_install_go_to_settings', function(e, data) {
+        if (data.type === 'plugin' && !data.is_payment && !data.is_shipping) {
+            sessionStorage.setItem('wa_plugin_onload', data.id);
+            location.reload();
+        }
+    });
+    const wa_plugin_onload = sessionStorage.getItem('wa_plugin_onload');
+    if (wa_plugin_onload) {
+        $('.js-plugin-list > li#plugin-' + wa_plugin_onload + ' > a').on('click', function  () {
+            sessionStorage.removeItem('wa_plugin_onload');
+            $.plugins.dispatch($(this).attr('href'), true);
+            return false;
+        }).click();
+    }
 
 })(jQuery);
 </script>

@@ -9,6 +9,8 @@ return array(
     'waAPIRightsMethod'                 => 'api/waAPIRightsMethod.class.php',
     'waAPIMethod'                       => 'api/waAPIMethod.class.php',
 
+    'waCronController'                  => 'cron/waCronController.class.php',
+
     'waAuth'                            => 'auth/waAuth.class.php',
     'waAuthAdapter'                     => 'auth/waAuthAdapter.class.php',
     'waOAuth2Adapter'                   => 'auth/waOAuth2Adapter.class.php',
@@ -158,6 +160,7 @@ return array(
     'waAppPayment'                      => 'payment/waAppPayment.class.php',
     'waOrder'                           => 'payment/waOrder.class.php',
     'waPayment'                         => 'payment/waPayment.class.php',
+    'waPayPayment'                      => 'payment/waPayPayment.class.php',
 
     'waRequest'                         => 'request/waRequest.class.php',
     'waRequestFile'                     => 'request/waRequestFile.class.php',
@@ -176,6 +179,7 @@ return array(
 
     'waArrayObject'                     => 'util/waArrayObject.class.php',
     'waArrayObjectDiff'                 => 'util/waArrayObjectDiff.class.php',
+    'waHtmlSanitizer'                   => 'util/waHtmlSanitizer.class.php',
     'waLazyDisplay'                     => 'util/waLazyDisplay.class.php',
     'waCSV'                             => 'util/waCSV.class.php',
     'waHtmlControl'                     => 'util/waHtmlControl.class.php',
@@ -183,6 +187,7 @@ return array(
     'waUtils'                           => 'util/waUtils.class.php',
 
     'waDateValidator'                   => 'validator/waDateValidator.class.php',
+    'waDateIsoValidator'                => 'validator/waDateIsoValidator.class.php',
     'waEmailValidator'                  => 'validator/waEmailValidator.class.php',
     'waLoginValidator'                  => 'validator/waLoginValidator.class.php',
     'waNumberValidator'                 => 'validator/waNumberValidator.class.php',
@@ -236,6 +241,7 @@ return array(
     'waWebasystIDException'                    => 'waid/exceptions/waWebasystIDException.class.php',
     'waWebasystIDAuthException'                => 'waid/exceptions/waWebasystIDAuthException.class.php',
     'waWebasystIDAccessDeniedAuthException'    => 'waid/exceptions/waWebasystIDAccessDeniedAuthException.class.php',
+    'waWebasystIDApiAuthException'             => 'waid/exceptions/waWebasystIDApiAuthException.class.php',
     'waWebasystIDClientManager'                => 'waid/waWebasystIDClientManager.class.php',
     'waWebasystIDAuthAdapter'                  => 'waid/waWebasystIDAuthAdapter.class.php',
     'waWebasystIDWAAuth'                       => 'waid/waWebasystIDWAAuth.class.php',
@@ -248,7 +254,13 @@ return array(
     'waWebasystIDCache'                        => 'waid/waWebasystIDCache.class.php',
     'waWebasystIDEndpointsConfig'              => 'waid/waWebasystIDEndpointsConfig.class.php',
     'waWebasystIDEndpointsHealthChecker'       => 'waid/waWebasystIDEndpointsHealthChecker.class.php',
-    'waWebasystIDUrlsProvider'                 => 'waid/waWebasystIDUrlsProvider.class.php'
+    'waWebasystIDUrlsProvider'                 => 'waid/waWebasystIDUrlsProvider.class.php',
+
+    'waServicesApiUrlConfig'                   => 'waid/services/waServicesApiUrlConfig.class.php',
+    'waServicesApi'                            => 'waid/services/waServicesApi.class.php',
+    'waServicesEndpointsConfig'                => 'waid/services/waServicesEndpointsConfig.class.php',
+    'waServicesUrlsProvider'                   => 'waid/services/waServicesUrlsProvider.class.php',
+    'waServicesSearch'                         => 'waid/services/waServicesSearch.class.php',
 
     // </WEBASYST ID MODULE>
 );

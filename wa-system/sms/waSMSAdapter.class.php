@@ -27,9 +27,19 @@ abstract class waSMSAdapter
      */
     abstract function send($to, $text, $from = null);
 
+    public function isConfigured()
+    {
+        return true;
+    }
+
     public function getControls()
     {
         return array();
+    }
+
+    public function getControlsHtml()
+    {
+        return null;
     }
 
     public function getId()

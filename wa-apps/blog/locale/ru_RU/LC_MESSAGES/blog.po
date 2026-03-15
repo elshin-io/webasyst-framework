@@ -5,14 +5,14 @@ msgstr ""
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: blog\n"
+"Language: ru_RU\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((((n%10)==1)&&((n%100)!=11))?(0):(((((n%10)>=2)&&((n%10)<=4))&&(((n%100)<10)||((n%100)>=20)))?(1):2));\n"
 "X-Poedit-SourceCharset: utf-8\n"
 "X-Poedit-Basepath: .\n"
-"X-Generator: Poedit 2.0.6\n"
-"Language: ru_RU\n"
+"X-Generator: Poedit 3.4.2\n"
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPath-1: .\n"
 
@@ -152,7 +152,7 @@ msgid "WYSIWYG"
 msgstr "Визуальный редактор"
 
 msgid "Publication deadline"
-msgstr "Срок публикации"
+msgstr "Опубликовать до"
 
 msgid "Not set"
 msgstr "Не установлено"
@@ -997,6 +997,9 @@ msgstr "Начните с <a href=\"%s\">создания записи</a> ил�
 msgid "Or enter image URL (image will be scaled to 16x16px)"
 msgstr "Или введите адрес изображения (изображение будет автоматически уменьшено до 16х16 пикселей)"
 
+msgid "Blog icon URL (will be auto-scaled to 16x16 pixels)"
+msgstr "Адрес иконки блога (изображение будет автоматически уменьшено до 16х16 пикселей)"
+
 msgid "Live preview is not available for private and not published blogs."
 msgstr "Предпросмотр недоступен для закрытых и неопубликованных блогов."
 
@@ -1068,3 +1071,87 @@ msgstr "Недопустимый адрес блога."
 
 msgid "Post address is invalid."
 msgstr "Недопустимый адрес записи."
+
+msgid "Public link"
+msgstr "Публичная ссылка"
+
+msgid "Actions"
+msgstr "Действия"
+
+msgid "Edit"
+msgstr "Редактировать"
+
+msgid "Selected"
+msgstr "Выбрано"
+
+msgid "Empty user name"
+msgstr "Пустое имя пользователя"
+
+msgid "Add"
+msgstr "Добавить"
+
+msgid "Select author"
+msgstr "Выберите автора"
+
+msgid "Your post"
+msgstr "Ваша запись"
+
+msgid "Are you sure?"
+msgstr "Вы уверены?"
+
+msgid "The post will be permanently deleted without a recover option. Delete?"
+msgstr "Эта запись будет удалена без возможности восстановления. Удалить?"
+
+msgid "Select a blog to move to"
+msgstr "Выберите блог для перемещения"
+
+msgid "Close"
+msgstr "Закрыть"
+
+msgid "Our news"
+msgstr "Наши новости"
+
+msgid "Confirm"
+msgstr "Подтвердить"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Message"
+msgstr "Сообщение"
+
+msgid "Continue"
+msgstr "Продолжить"
+
+msgid "WYSIWYG editor may change your HTML code. It is necessary for correct text formatting. Smarty code may be broken and outdated HTML tags may be replaced with modern ones. Are you sure to switch to WYSIWYG editor?"
+msgstr "Редактор WYSIWYG может изменить ваш HTML-код. Это необходимо для правильного форматирования текста. Код Smarty может быть сломан, и устаревшие HTML-теги могут быть заменены на современные. Вы действительно хотите переключиться на WYSIWYG-редактор?"
+
+msgid "Write a post"
+msgstr "Написать текст"
+
+msgid "E.g., “%s”."
+msgstr "Например, «%s»."
+
+msgid "write a SEO-friendly product review"
+msgstr "напиши обзор товара для SEO"
+
+msgid "Premium only"
+msgstr "Только в премиум"
+
+msgid "AI post generation is available with the premium license only. Upgrade now and get the bonus of 500 extra AI prompts for free!"
+msgstr "ИИ-генерация записей в блоге доступна только с премиум-лицензией. Переходите на премиум сейчас и получите 500 запросов к ИИ бесплатно!"
+
+msgid "Upgrade to premium"
+msgstr "Подключить премиум"
+
+msgid "Try for free"
+msgstr "Попробовать бесплатно"
+
+msgid "Bonus: +500 free AI prompts"
+msgstr "Бонус: +500 запросов к ИИ в подарок"
+
+msgid "Copy to editor"
+msgstr "Копировать в редактор"
+
+msgid "An error has occurred. Please reload this page and try again."
+msgstr "Произошла ошибка. Обновите страницу и повторите попытку."

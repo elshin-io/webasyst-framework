@@ -27,7 +27,7 @@
  * There are 3 ways to connect to the template:
     1) Directly request the "Button" - /webasyst?module=backendCheatSheet&action=button
     2) Directly request the Cheat Sheet body - /webasyst?module=backendCheatSheet&action=cheatSheet
-    3) Calling the getCheetSheetButton method from waView - {$wa->getCheatSheetButton()}.
+    3) Calling the getCheatSheetButton method from waView - {$wa->getCheatSheetButton()}.
  *
  * Options:
  * 1) 'name' - Attention! Name 'webasyst' reserved. The name by which your cheat sheet will be available in the $.cheatsheet array. It will generate identifiers on the page.
@@ -83,8 +83,6 @@ class webasystBackendCheatSheetActions extends waActions
         $only_plugin = waRequest::request('only_plugin', 0, waRequest::TYPE_INT);
         $custom_template = waRequest::request('custom_template', null, waRequest::TYPE_STRING);
 
-        $template = null;
-
         if (empty($only_plugin) || (int)$only_plugin === 0) {
             $assign = array(
                 'vars'        => $this->getVars(),
@@ -106,6 +104,7 @@ class webasystBackendCheatSheetActions extends waActions
         }
 
         //Set plugin template to cheat sheet
+        $template = null;
         if ($app && $plugin_id && $custom_template) {
             $custom_template_path = wa($app)->getConfig()->getPluginPath($plugin_id).'/templates/cheatSheet.html';
 
@@ -116,7 +115,7 @@ class webasystBackendCheatSheetActions extends waActions
         }
 
         // set default template for this action, otherwise will be used custom template ($custom_template_path)
-        if (!$template) {
+        if (!$template && !$this->template) {
             $this->setTemplate('Help.html', true);
         }
 
@@ -399,7 +398,7 @@ class webasystBackendCheatSheetActions extends waActions
             '$wa->meta(<em>$field</em>, <em>$value</em>)'                                 => _ws('Sets a new meta tag value; e.g., <code>{$wa-&gt;meta("title", "My super page")}</code>.'),
             '$wa->accountName()'                                                          => _ws('Returns the value of system setting “Company name”.'),
             '$wa->apps()'                                                                 => _ws('Returns items of the current site’s navigation menu, which is either generated automatically or is set up manually in the “Site → Settings” screen.'),
-            '$wa->currentUrl(<em>$absolute</em>)'                                         => _ws('Returns current page’s relative URL, or absolute if the argument is set to <em>true</em>.'),
+            '$wa->currentUrl(<em>$absolute</em>, <em>$without_params</em>)'               => _ws('Returns current page’s relative URL by default. The first parameter set to <code>true</code> makes the returned URL absolute. The second parameter set to <code>true</code> removes all GET parameters from the URL.'),
             '$wa->domainUrl()'                                                            => _ws('Returns current domain’s root URL (absolute).'),
             '$wa->globals(<em>$key</em>)'                                                 => _ws('Returns the value of a global variable.'),
             '$wa->globals(<em>$key</em>, <em>$value</em>)'                                => _ws('Assigns a new value to a global variable.'),
@@ -423,6 +422,7 @@ class webasystBackendCheatSheetActions extends waActions
             '$wa-><em>app_id</em>->themeUrl(<em>$theme_id</em>)'                          => _ws('Returns the current URL of a design theme directory of a specified app.'),
             '$wa-><em>app_id</em>->page(<em>$id</em>)'                                    => _ws('Returns the data array of an app’s page.'),
             '$wa-><em>app_id</em>->pages(<em>$parent_id</em>, <em>$with_params</em>)'     => _ws('Returns the array of published pages of a specified app.<br><br><em>$parent_id</em> is the ID of the parent page whose subpages must be returned. <em>0</em> means that all app’s pages must be returned.<br><br><em>$with_params</em> means whether pages must be returned with custom parameters specified in their settings.'),
+            '$wa-><em>app_id</em>->config(<em>$name</em>)'                                => _ws('Returns the value of an option <em>$name</em> from configuration file <em>config.php</em> of the specified app.'),
         );
     }
 

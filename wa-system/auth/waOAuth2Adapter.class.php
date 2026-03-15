@@ -5,7 +5,7 @@ abstract class waOAuth2Adapter extends waAuthAdapter
     protected $app_id;
     protected $app_secret;
     // CSRF protection (add random state to redirect URI)
-    protected $check_state = false;
+    protected $check_state = true;
 
     public function __construct($options = array())
     {
@@ -20,6 +20,11 @@ abstract class waOAuth2Adapter extends waAuthAdapter
         // check code
         $code = $this->getCode();
         if (!$code) {
+            $goal_url_encoded = waRequest::get('goal_url', null, waRequest::TYPE_STRING_TRIM);
+            if (!empty($goal_url_encoded)) {
+                wa()->getStorage()->set('auth_goal_url', $goal_url_encoded);
+            }
+    
             $url = $this->getRedirectUri();
             if ($this->check_state) {
                 $state = md5(uniqid(rand(), true));
@@ -30,8 +35,13 @@ abstract class waOAuth2Adapter extends waAuthAdapter
             wa()->getResponse()->redirect($url);
         }
 
+        $goal_url_encoded = wa()->getStorage()->get('auth_goal_url');
+        if (!empty($goal_url_encoded)) {
+            waRequest::setParam('goal_url', $goal_url_encoded);
+        }
+
         if ($this->check_state) {
-            $state = waRequest::get('state');
+            $state = waRequest::request('state');
             $auth_state = wa()->getStorage()->get('auth_state');
             if (!$state || !$auth_state || $state !== wa()->getStorage()->get('auth_state')) {
                 // @todo: error
@@ -58,7 +68,7 @@ abstract class waOAuth2Adapter extends waAuthAdapter
 
     public function getCode()
     {
-        return waRequest::get('code');
+        return waRequest::request('code');
     }
 
     /**

@@ -33,7 +33,7 @@ class waMail extends Swift_Mailer
         if (!$message->getHeaders()->get('DKIM-Signature')) {
             $mail_config = $this->readConfigFile();
             $sender_email = key($message->getFrom());
-            $e = explode('@', ifset($sender_email));
+            $e = explode('@', (string) ifset($sender_email));
             $domain_name = end($e);
             $mail_data = false;
 
@@ -106,7 +106,7 @@ class waMail extends Swift_Mailer
      */
     public static function getTransportByEmail($email)
     {
-        $email = waIdna::dec(mb_strtolower($email));
+        $email = waIdna::dec(mb_strtolower((string) $email));
         if (!isset(self::$wa_config['transport'])) {
             self::$wa_config['transport'] = wa()->getConfig()->getConfigFile('mail');
         }
@@ -118,6 +118,15 @@ class waMail extends Swift_Mailer
         if (!$config || !isset($config['type'])) {
             return Swift_MailTransport::newInstance();
         }
+        if ($config['type'] == 'wasender' && !(new waServicesApi)->isConnected()) {
+            // Fallback to default transport in case of Webasyst ID does not connected
+            if (isset(self::$wa_config['transport']['default']) && self::$wa_config['transport']['default']['type'] !== 'wasender') {
+                $config = self::$wa_config['transport']['default'];
+            } else {
+                return Swift_MailTransport::newInstance();
+            }
+        }
+
         if ($config['type'] == 'smtp') {
             if (empty($config['port'])) {
                 $config['port'] = 25;
@@ -131,6 +140,8 @@ class waMail extends Swift_Mailer
                 $transport->setEncryption($config['encryption']);
             }
             return $transport;
+        } elseif ($config['type'] == 'wasender') {
+            return new waMailSenderTransport();
         } else {
             $class_name = "Swift_".ucfirst($config['type'])."Transport";
             if (class_exists($class_name)) {

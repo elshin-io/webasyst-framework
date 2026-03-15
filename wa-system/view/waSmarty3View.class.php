@@ -99,7 +99,7 @@ class waSmarty3View extends waView
             if (is_array($value)) {
                 $value = array_map('htmlspecialchars', $value);
             } else {
-                $value = htmlspecialchars($value);
+                $value = htmlspecialchars((string) $value);
             }
         }
         $this->smarty->assign($name, $value);
@@ -143,7 +143,7 @@ class waSmarty3View extends waView
         try {
             $result = $this->smarty->fetch($template, $cache_id);
             $this->resetTemplateAndTheme($is_template);
-        } catch (Exception $ex) {
+        } catch (Throwable $ex) {
             $this->resetTemplateAndTheme($is_template);
             throw $ex;
         }

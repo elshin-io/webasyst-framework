@@ -49,6 +49,7 @@ class webasystSettingsGeneralSaveController extends webasystSettingsJsonControll
             'debug' => 'boolean',
             'image_adapter' => 'string',
             'ui' => 'string',
+            'zone_jail' => 'string',
         );
         $flush_settings = array('debug');
 
@@ -85,10 +86,16 @@ class webasystSettingsGeneralSaveController extends webasystSettingsJsonControll
             }
         }
         if ($config_changed) {
+            $new_disallow_legacy_value = empty($config['ui']);
+            if (ifset($config, 'ui_disallow_legacy', false) !== $new_disallow_legacy_value) {
+                $config['ui_disallow_legacy'] = $new_disallow_legacy_value;
+                $flush =  true;
+            }
             waUtils::varExportToFile($config, $config_path);
         }
 
         if ($flush) {
+            wa()->getStorage()->del('apps-count');
             wa()->getConfig()->clearCache();
         }
 

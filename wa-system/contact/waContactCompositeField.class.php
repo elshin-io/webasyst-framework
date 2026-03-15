@@ -107,7 +107,7 @@ class waContactCompositeField extends waContactField
         $found = true;
 
         if (strpos((string) $format, ',')) {
-            // when formats are delimeted by comma, use the first one that exists
+            // when formats are delimited by comma, use the first one that exists
             $found = false;
             foreach(explode(',', $format) as $format) {
                 if ($format == 'value' || $format == 'html' || $this->getFormatter($format)) {
@@ -231,6 +231,7 @@ class waContactCompositeField extends waContactField
                             unset($data[$sort]);
                         }
                     }
+                    $data = array_values($data);
                     foreach ($value as $v) {
                         $data[] = $v;
                     }
@@ -274,7 +275,7 @@ class waContactCompositeField extends waContactField
     {
         $fields = array();
         foreach($this->options['fields'] as $f) {
-            if ($f->getId() === $subfield_name) {
+            if ($f->getId() === (string) $subfield_name) {
                 return $f;
             }
             $fields[$f->getId()] = $f;
@@ -333,7 +334,7 @@ class waContactCompositeField extends waContactField
         $params_subfield['composite_value'] = $data;
 
         // When subfield values do not exist in 'data', take them from 'value'
-        // This trigers e.g. when taking values from POST
+        // This triggers e.g. when taking values from POST
         if (is_array($data) && is_array($value)) {
             $data += $value;
         }
@@ -379,7 +380,7 @@ class waContactCompositeField extends waContactField
                 if (wa()->getEnv() == 'frontend') {
                     $field_class = 'wa-'.$field_class;
                 }
-                $result[] = '<span class="'.($field->isRequired() ? $required_class : '').'field '.$field_class.'"><span>'.$field->getName().'</span>'.$field->getHTML($params_subfield, $attrs_one).$errors_html.'</span>';
+                $result[] = '<span class="'.($field->isRequired() ? $required_class : '').'field '.$field_class.'"><span>'.htmlspecialchars($field->getName()).'</span>'.$field->getHTML($params_subfield, $attrs_one).$errors_html.'</span>';
             }
         }
         return implode($result);

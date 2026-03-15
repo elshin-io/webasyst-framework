@@ -13,9 +13,44 @@
         photos_per_page:null,
         list_template:'template-photo-thumbs',           //template id
         photo_list_string:{},
+        is_from_list: false,
+        is_sidebar_click: false,
+        _photo_stream_cache: null,
         init: function (options) {
+            $('#js-app-sidebar').on('click', 'a', () => $.photos.is_sidebar_click = true);
+
+            // отслеживаем нажатие на кнопку назад/вперед в браузере
+            let history_navigate_direction = null;
+            if ('navigation' in window) {
+                navigation.addEventListener('navigate', (e) => {
+                  if (e.navigationType === 'traverse') {
+                    const from = navigation.currentEntry;
+                    const to = e.destination;
+                    history_navigate_direction = (to && from && typeof to.index === 'number' && typeof from.index === 'number' && to.index < from.index)
+                      ? 'back' : 'forward';
+                  }
+                });
+            }
+
             if (typeof($.History) != "undefined") {
                 $.History.bind(function () {
+                    if($.photos.is_from_list && !$.photos.getPhotoId()) {
+                        if($.photos.is_sidebar_click) {
+                            $.photos.is_sidebar_click = false;
+                            if (history_navigate_direction === 'back') {
+                                $.photos.ignore_scrolltop = true;
+                                $.photos.ignore_dispatch = 1;
+                            }
+                        }else{
+                            $.photos.ignore_scrolltop = true;
+                            $.photos.ignore_dispatch = 1;
+                        }
+
+                        history_navigate_direction = null;
+                        
+                        $.photos.onToolbarClose();
+                    }
+
                     $.photos.dispatch();
                 });
 
@@ -239,12 +274,14 @@
 
         beforeAnyAction: function() {},
 
-        initClearance: function() {
+        initClearance: function(keep_lazy_load = false) {
             $.photos.removeHeaderToolbar();
             $.photos.toggleFullScreen();
             $.photos.highlightSidebarItem();
             $.photos.hotkey_manager.unset();
-            $.photos.unsetLazyLoad();
+            if (!keep_lazy_load) {
+                $.photos.unsetLazyLoad();
+            }
             $.photos.photo_stream_cache.clear();
             $.photos.photo_stack_cache.clear();
             delete $.photos.photo_stream_cache.hash;
@@ -560,7 +597,7 @@
                 }
             });
 
-            $('#photo-list .js-description div, .js-description-editable').on('click', function() {
+            $('#photo-list').on('click', '.js-description div, .js-description-editable', function() {
                 var self = $(this),
                     height = $(this).height(),
                     placeholder = $_('add description');
@@ -904,8 +941,8 @@
 
                     $.photos.updateViewChildPhoto(data);
 
-                    const isFirst = () => data.photo_stream.photos[0].id === photo.id
-                    const isLast = () => data.photo_stream.photos[data.photo_stream.photos.length - 1].id === photo.id
+                    const isFirst = () => data?.photo_stream?.photos[0]?.id === photo.id
+                    const isLast = () => data?.photo_stream?.photos[data?.photo_stream?.photos.length - 1]?.id === photo.id
                     $.photos.hooks_manager.trigger('afterLoadPhoto', { first: isFirst(), last: isLast() });
                     delete f.xhr;
                 },
@@ -950,7 +987,7 @@
         },
 
         loadNewPhoto: function method(id) {
-            $.photos.initClearance();
+            $.photos.initClearance($.photos.is_from_list);
             $.photos.widget.loupe.init();
 
             method.xhr_map = method.xhr_map || {};
@@ -1020,7 +1057,20 @@
             }
 
             $.photos.setTitle(photo.name_not_escaped);
-            $('#content').html(tmpl('template-p-block'));
+
+            if ($.photos.is_from_list) {
+                const $sidebar = $('#js-app-sidebar');
+                let _left = 304;
+                if($sidebar.length) {
+                    _left = $sidebar.width();
+                    if(window.getComputedStyle($sidebar[0]).position === 'static') {
+                        _left = 0;
+                    }
+                }
+                $('#render-photo-place').html(tmpl('template-p-block')).css('--left-padding', `${_left}px`).show();
+            }else{
+                $('#content').html(tmpl('template-p-block'));
+            }
 
             $.photos.renderPhotoBlock({
                 photo,
@@ -1050,7 +1100,9 @@
                 $.photos.goToAnchor($.photos.anchor);
                 $.photos.anchor = '';
             } else {
-                $.photos.scrollTop();
+                if (!$.photos.is_from_list) {
+                    $.photos.scrollTop();
+                }
             }
 
             $('#p-warning-not-in-album').hide();
@@ -1894,8 +1946,8 @@
                 is_start = false;
 
             $('#photo-stream ul.photostream:first').photoStreamSlider({
-                backwardLink: '#photo-stream .p-rewind',
-                forwardLink: '#photo-stream .p-ff',
+                backwardLink: '#p-block .p-rewind',
+                forwardLink: '#p-block .p-ff',
                 photoStream: photo_stream,
                 duration: duration,
                 onForward: function f() {
@@ -2099,7 +2151,11 @@
             $toolbar.closest('#wa-header').addClass('has-toolbar');
             $.photos.menu.init('photo');
 
-            $('.js-toolbar-close').on('click', function() {
+            $('.js-toolbar-close').on('click', function(e) {
+                if ($.photos.is_from_list) {
+                    $.photos.ignore_dispatch = 1;
+                    $.photos.onToolbarClose();
+                }
                 $(this).closest('#wa-header').removeClass('has-toolbar').find('#p-toolbar').remove();
             });
 
@@ -2218,7 +2274,7 @@
         },
 
         _chooseProperThumb: function(photo) {
-            return photo.thumb_big;
+            return photo.thumb_big || photo.thumb_mobile;
         },
 
         setNextPhotoLink: function(next) {
@@ -2365,16 +2421,17 @@
 
         restoreOriginal: function (element) {
             if (element.id === 'restore-original') {
-                if (confirm($_('This will reset all changes you applied to the image after upload, and will restore the image to its original. Are you sure?'))) {
+                if (confirm($_('This will reset all changes you applied to the image after upload and will restore the original image. Are you sure?'))) {
                     $.photos.setCover(true);
                     let waLoading = $.waLoading(),
                         $wrapper = $("body"),
-                        locked_class = "is-locked";
+                        locked_class = "is-locked",
+                        id = $.photos.getPhotoId();
 
                     waLoading.show();
                     waLoading.animate(10000, 95, false);
                     $wrapper.addClass(locked_class);
-                    $.post('?module=photo&action=restore', {id: $.photos.getPhotoId()}, function (r) {
+                    $.post('?module=photo&action=restore', {id: id}, function (r) {
                         if (r.status == 'ok') {
                             var photo = r.data.photo;
                             if (photo.parent_id == 0) {
@@ -2553,6 +2610,11 @@
                                             $.photos.makeDeleteAnimation(removed_photo_ids, function() {
                                                 fn && fn(r);
                                             });
+
+                                            /* update stream count */
+                                            const $stream_count = $('#photos-count');
+                                            const stream_count_number = parseInt($stream_count.text() ?? '0', 10);
+                                            $stream_count.text(stream_count_number - removed_photo_ids.length);
                                         } else {
                                             fn && fn(r);
                                         }
@@ -2991,6 +3053,10 @@
             if (!link.length) {
                 link = $app_sidebar.find('a[href^="#'+(href||'/')+'"]');
             }
+            if (!link.length && `#${href}`.startsWith('#/design/')) {
+                link = $app_sidebar.find('a[href="#/design/"]');
+            }
+
             if (link.length) {
                 link.parents('li:first').addClass('selected');
             }
@@ -3018,6 +3084,17 @@
                     return;
                 }
                 if (code == 39) { // right arrow
+                    var $ps = $('#photo-stream ul.photostream:first');
+                    if ($ps.length) {
+                        // Эмулируем клик по forwardLink, чтобы полностью повторить поведение UI
+                        var $forward = $('#p-block .p-ff').first();
+                        if ($forward.length) {
+                            $forward.trigger('click');
+                        } else {
+                            // безопасный фолбэк
+                            $ps.trigger('forward', { steps: 1 });
+                        }
+                    }
                     var next = $.photos.photo_stream_cache.getNext();
                     if (next) {
                         $.photos.goToHash($.photos.getHashByPhotoId(next.id), false);
@@ -3026,6 +3103,17 @@
                     arrowsHandlerDown.hold = true;
                 }
                 if (code == 37) { // left arrow
+                    var $ps = $('#photo-stream ul.photostream:first');
+                    if ($ps.length) {
+                        // Эмулируем клик по backwardLink
+                        var $back = $('#p-block .p-rewind').first();
+                        if ($back.length) {
+                            $back.trigger('click');
+                        } else {
+                            // безопасный фолбэк
+                            $ps.trigger('backward', { steps: 1 });
+                        }
+                    }
                     var prev = $.photos.photo_stream_cache.getPrev();
                     if (prev) {
                         $.photos.goToHash($.photos.getHashByPhotoId(prev.id), false);
@@ -3716,6 +3804,53 @@
                     }
                 }
             }
+        },
+
+        onClickListPhoto: function(e, ctx) {
+            e.preventDefault();
+            $.photos._photo_stream_cache = clonePhotoStream($.photos.photo_stream_cache);
+            $.photos.is_from_list = true;
+            $.wa.setHash(ctx.dataset.href);
+
+            $('body').css('overflow-y', 'hidden');
+            $('#p-content').parent('.content').css('visibility', 'hidden');
+
+
+            function clonePhotoStream(source) {
+                const target = new PhotoStream();
+
+                // глубокая копия элементов (structuredClone, если доступен)
+                const items = (typeof structuredClone === 'function')
+                  ? structuredClone(source.getAll())
+                  : $.extend(true, [], source.getAll());
+
+                target.append(items);
+
+                // восстановить current
+                if (typeof source.getCurrentId === 'function') {
+                  const currentId = source.getCurrentId();
+                  if (currentId != null) {
+                    target.setCurrentById(currentId);
+                  }
+                }
+
+                // скопировать важные публичные поля (как минимум hash)
+                if ('hash' in source) {
+                  target.hash = source.hash;
+                }
+
+                return target;
+              }
+        },
+
+        onToolbarClose: function () {
+            $('#render-photo-place').empty().attr('style', '');
+            $('#p-content').parent('.content').css('visibility', 'visible');
+            $('body').css('overflow-y', 'auto');
+            this.initClearance(true);
+            $.photos.is_from_list = false;
+            $.photos.photo_stream_cache = $.photos._photo_stream_cache;
+            $.photos._photo_stream_cache = null;
         }
     };
 })(jQuery);

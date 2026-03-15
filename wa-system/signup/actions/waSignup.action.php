@@ -950,7 +950,7 @@ class waSignupAction extends waViewAction
 
         // check captcha
         if ($this->auth_config->getSignUpCaptcha()) {
-            if (!wa()->getCaptcha(['app_id' => $this->auth_config->getApp()])->isValid()) {
+            if (!$this->getCaptcha()->isValid()) {
                 $errors['captcha'] = _ws('Invalid captcha');
             }
         }
@@ -1054,6 +1054,11 @@ class waSignupAction extends waViewAction
         }
 
         return $errors;
+    }
+
+    protected function getCaptcha()
+    {
+        return wa()->getCaptcha(['app_id' => $this->auth_config->getApp()]);
     }
 
     /**
@@ -1261,7 +1266,7 @@ class waSignupAction extends waViewAction
                 // If confirmed by SMS, than try generate password on not extended alphabet
                 $this->getGeneratedPassword(false);
             } elseif (!$need_confirm) {
-                // if confirmation is not required, but sms channel has priority (first in list), than try generate passowrd on not extended alphabet
+                // if confirmation is not required, but sms channel has priority (first in list), than try generate password on not extended alphabet
                 $channels = $this->auth_config->getVerificationChannelInstances();
                 $channel = reset($channels);
                 if ($channel->isSMS()) {
@@ -1357,7 +1362,7 @@ class waSignupAction extends waViewAction
                     $phone_transformed = !empty($details['phone_transformed']);
                     break;
                 } elseif (isset($details['timeout'])) {
-                    // Tell user about timeout error right aways - so return
+                    // Tell user about timeout error right away - so return
                     return array(self::SIGNED_UP_STATUS_FAILED, $details);
                 } else {
                     // diagnostic log print
@@ -1566,7 +1571,24 @@ class waSignupAction extends waViewAction
             }
             return null;
         }
+
+        $this->logAgreementAcceptance($contact);
         return $contact;
+    }
+
+    protected function logAgreementAcceptance($contact)
+    {
+        $service_agreement = $this->auth_config->getServiceAgreement();
+        if (empty($service_agreement)) {
+            // Nothing to log
+            return;
+        }
+
+        $params = $this->auth_config->getParams();
+        $service_agreement_text = isset($params['service_agreement_text']) ? $params['service_agreement_text'] : '';
+        $contact_id = !empty($contact) && $contact->exists() ? $contact->getId() : null;
+        wa('webasyst');
+        webasystHelper::logAgreementAcceptance('service_agreement', $service_agreement_text, $service_agreement, $contact_id, 'signup');
     }
 
     protected function getFieldCaption($field_id)

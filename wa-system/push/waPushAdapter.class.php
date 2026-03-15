@@ -102,11 +102,15 @@ abstract class waPushAdapter
             $settings = $this->getSettingsModel()->get('webasyst', $this->getSettingsKey(), '{}');
             $this->settings = json_decode($settings, true);
             foreach ($this->settings as $key => $value) {
-                // decode non string values
-                if (!is_numeric($value)) {
-                    $json = json_decode($value, true);
-                    if (is_array($json)) {
-                        $this->settings[$key] = $json;
+                if (is_array($value)) {
+                    $this->settings[$key] = $value;
+                } else {
+                    // decode non string values
+                    if (!is_numeric($value)) {
+                        $json = json_decode($value, true);
+                        if (is_array($json)) {
+                            $this->settings[$key] = $json;
+                        }
                     }
                 }
             }
@@ -118,7 +122,7 @@ abstract class waPushAdapter
                 }
             }
         }
-
+        
         if ($name === null) {
             return $this->settings;
         } else {
@@ -140,7 +144,7 @@ abstract class waPushAdapter
         $default = array(
             'instance'            => & $this,
             'title_wrapper'       => '%s',
-            'description_wrapper' => '<br><div class="hint">%s</div>',
+            'description_wrapper' => '<div class="hint">%s</div>',
             'control_wrapper'     => '
 <div class="field">
     <div class="name">%s</div>
@@ -161,12 +165,22 @@ abstract class waPushAdapter
             }
 
             $row['value'] = $this->getSettings($name);
+            if (isset($row['value']) && is_array($row['value'])) {
+                $row['value'] = json_encode($row['value']);
+            }
 
             if (!empty($row['control_type'])) {
                 $controls[$name] = waHtmlControl::getControl($row['control_type'], $name, $row);
             }
         }
+        
         return implode("\n", $controls);
+    }
+
+    public function validateSettings($settings = [])
+    {
+        // override it in adapter if needed
+        return null;
     }
 
     /**
@@ -231,5 +245,43 @@ abstract class waPushAdapter
             $push_subscribers_model = new waPushSubscribersModel();
         }
         return $push_subscribers_model;
+    }
+
+    // Normalize subscriber data before save
+    abstract protected function normalizeSubscriberData($data);
+    
+    public function addSubscriber($data, $scope = null)
+    {
+        $data = $this->normalizeSubscriberData($data);
+        $subscriber = array(
+            'provider_id'     => $this->getId(),
+            'domain'          => waRequest::server('HTTP_HOST'),
+            'create_datetime' => date("Y-m-d H:i:s"),
+            'contact_id'      => wa()->getUser()->getId(),
+            'scope'           => $scope,
+            'subscriber_data' => is_array($data) ? json_encode($data) : $data,
+        );
+
+        $psm = $this->getPushSubscribersModel();
+        $data_for_search = $subscriber;
+        unset($data_for_search['domain'], $data_for_search['create_datetime']);
+        if ($psm->getByField($data_for_search)) {
+            return false;
+        }
+        $psm->insert($subscriber);
+        return true;
+    }
+
+    public function deleteSubscriber($data)
+    {
+        $data = $this->normalizeSubscriberData($data);
+        $data_for_search = array(
+            'provider_id'     => $this->getId(),
+            'contact_id'      => wa()->getUser()->getId(),
+            'subscriber_data' => is_array($data) ? json_encode($data) : $data,
+        );
+
+        $psm = $this->getPushSubscribersModel();
+        return $psm->deleteByField($data_for_search);
     }
 }

@@ -27,12 +27,17 @@ class photosFrontendCollectionViewAction extends photosFrontendViewAction
      */
     protected $count;
 
+    /**
+     * @var int photos per page limit
+     */
+    protected int $photos_per_page = 30;
+
     protected function init()
     {
         $lazy = waRequest::get('lazy');
 
         $this->photo_model = new photosPhotoModel();
-        $this->photos_per_page = $this->getConfig()->getOption('photos_per_page');
+        $this->photos_per_page = (int) $this->getConfig()->getOption('photos_per_page');
 
         $page = 1;
 
@@ -75,7 +80,7 @@ class photosFrontendCollectionViewAction extends photosFrontendViewAction
         $total_count = $collection->count();
 
         $this->view->assign('photos_per_page', $this->photos_per_page);
-        $this->view->assign('pages_count', floor($total_count / $this->photos_per_page) + 1);
+        $this->view->assign('pages_count', ceil($total_count / $this->photos_per_page));
         $this->view->assign('total_photos_count', $total_count);
         $this->view->assign('offset', $this->offset);
         $this->view->assign('photos', $photos);
